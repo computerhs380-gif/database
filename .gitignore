@@ -11,6 +11,5 @@ venv/
 ENV/
 
 # Databases and Local Data
-*.db
 *.sqlite3
 sample_data/
