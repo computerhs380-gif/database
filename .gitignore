@@ -1,0 +1,16 @@
+# Python build and cache files
+__pycache__/
+*.pyc
+build/
+dist/
+*.spec
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+
+# Databases and Local Data
+*.db
+*.sqlite3
+sample_data/
