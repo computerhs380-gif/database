@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch: # Allows you to manually click a button to build anytime
+  workflow_dispatch:
 
 jobs:
   build-windows:
@@ -26,13 +26,13 @@ jobs:
         pip install -r requirements.txt
         pip install pyinstaller
 
-    - name: Compile Application to EXE
+    - name: Compile Application to Standalone EXE
       run: |
-        pyinstaller --onefile --windowed app.py
+        pyinstaller --onefile --noconsole --noconfirm --name="CIMS" --add-data "ui;ui" --add-data "sample_data;sample_data" app.py
 
     - name: Archive Executable Build Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: database-windows-exe
-        path: dist/app.exe
-        retention-days: 5
+        name: CIMS-Windows-Executable
+        path: dist/CIMS.exe
+        retention-days: 7
