@@ -1,0 +1,38 @@
+name: Compile Windows Executable
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # Allows you to manually click a button to build anytime
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository code
+      uses: actions/checkout@v4
+
+    - name: Set up Python Environment
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+
+    - name: Install Project Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+
+    - name: Compile Application to EXE
+      run: |
+        pyinstaller --onefile --windowed app.py
+
+    - name: Archive Executable Build Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: database-windows-exe
+        path: dist/app.exe
+        retention-days: 5
