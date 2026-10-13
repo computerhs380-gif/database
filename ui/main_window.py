@@ -40,6 +40,9 @@ from locales import (
     get_status_filter_options,
     canonical_status_filter,
     display_status_filter,
+    get_hazard_filter_options,
+    canonical_hazard_filter,
+    display_hazard_filter,
 )
 from ui.styles import COLORS, FONTS, configure_treeview_style
 from ui.chemical_dialog import ChemicalDialog
@@ -301,9 +304,13 @@ class MainWindow(ctk.CTk):
 
         self.filter_inner = ctk.CTkFrame(self.filter_bar, fg_color="transparent")
         self.filter_inner.pack(fill="x", padx=12, pady=10)
+        self.filter_primary = ctk.CTkFrame(self.filter_inner, fg_color="transparent")
+        self.filter_primary.pack(fill="x")
+        self.filter_secondary = ctk.CTkFrame(self.filter_inner, fg_color="transparent")
+        self.filter_secondary.pack(fill="x", pady=(8, 0))
 
         # Search Block
-        self.search_block = ctk.CTkFrame(self.filter_inner, fg_color="transparent")
+        self.search_block = ctk.CTkFrame(self.filter_primary, fg_color="transparent")
         self.lbl_search = ctk.CTkLabel(self.search_block, text="", font=FONTS["body_bold"])
         self.entry_search = ctk.CTkEntry(
             self.search_block,
@@ -315,7 +322,7 @@ class MainWindow(ctk.CTk):
         self.search_var.trace_add("write", lambda *args: self._on_filter_changed())
 
         # Department Block
-        self.dept_block = ctk.CTkFrame(self.filter_inner, fg_color="transparent")
+        self.dept_block = ctk.CTkFrame(self.filter_primary, fg_color="transparent")
         self.lbl_department = ctk.CTkLabel(self.dept_block, text="", font=FONTS["body_bold"])
         dept_options = get_department_options(self.current_lang)
         self.opt_department = ctk.CTkOptionMenu(
@@ -328,7 +335,7 @@ class MainWindow(ctk.CTk):
         self.opt_department.set(display_department("All", self.current_lang))
 
         # Quick Filter Block
-        self.qfilter_block = ctk.CTkFrame(self.filter_inner, fg_color="transparent")
+        self.qfilter_block = ctk.CTkFrame(self.filter_primary, fg_color="transparent")
         self.lbl_quick_filter = ctk.CTkLabel(self.qfilter_block, text="", font=FONTS["body_bold"])
         status_options = get_status_filter_options(self.current_lang)
         self.btn_status_filter = ctk.CTkSegmentedButton(
@@ -339,9 +346,20 @@ class MainWindow(ctk.CTk):
         )
         self.btn_status_filter.set(display_status_filter("All", self.current_lang))
 
+        self.hazard_filter_block = ctk.CTkFrame(self.filter_secondary, fg_color="transparent")
+        self.lbl_hazard_filter = ctk.CTkLabel(self.hazard_filter_block, text="", font=FONTS["body_bold"])
+        self.opt_hazard_filter = ctk.CTkOptionMenu(
+            self.hazard_filter_block,
+            values=get_hazard_filter_options(self.current_lang),
+            command=lambda val: self._on_filter_changed(),
+            width=230,
+            font=FONTS["body"],
+        )
+        self.opt_hazard_filter.set(display_hazard_filter("All", self.current_lang))
+
         # Clear Filters Button
         self.btn_clear = ctk.CTkButton(
-            self.filter_inner,
+            self.filter_secondary,
             text="",
             width=100,
             font=FONTS["caption"],
@@ -570,6 +588,7 @@ class MainWindow(ctk.CTk):
         self.entry_search.configure(placeholder_text=t("placeholder_search", lang))
         self.lbl_department.configure(text=t("lbl_department", lang))
         self.lbl_quick_filter.configure(text=t("lbl_quick_filter", lang))
+        self.lbl_hazard_filter.configure(text=t("lbl_hazard_filter", lang))
         self.btn_clear.configure(text=t("btn_clear_filters", lang))
 
         # Update department options and retain current selection
@@ -584,6 +603,12 @@ class MainWindow(ctk.CTk):
         self.btn_status_filter.configure(values=status_options)
         self.btn_status_filter.set(display_status_filter(cur_canonical_filter, lang))
 
+        previous_hazard_lang = LANG_KU if lang == LANG_EN else LANG_EN
+        cur_canonical_hazard = canonical_hazard_filter(self.opt_hazard_filter.get(), previous_hazard_lang)
+        hazard_options = get_hazard_filter_options(lang)
+        self.opt_hazard_filter.configure(values=hazard_options)
+        self.opt_hazard_filter.set(display_hazard_filter(cur_canonical_hazard, lang))
+
         # Unpack filter components
         self.search_block.pack_forget()
         self.lbl_search.pack_forget()
@@ -594,6 +619,9 @@ class MainWindow(ctk.CTk):
         self.qfilter_block.pack_forget()
         self.lbl_quick_filter.pack_forget()
         self.btn_status_filter.pack_forget()
+        self.hazard_filter_block.pack_forget()
+        self.lbl_hazard_filter.pack_forget()
+        self.opt_hazard_filter.pack_forget()
         self.btn_clear.pack_forget()
 
         if rtl:
@@ -609,6 +637,9 @@ class MainWindow(ctk.CTk):
             self.lbl_quick_filter.pack(side="right", padx=(6, 0))
             self.btn_status_filter.pack(side="right")
 
+            self.hazard_filter_block.pack(side="right")
+            self.lbl_hazard_filter.pack(side="right", padx=(6, 0))
+            self.opt_hazard_filter.pack(side="right")
             self.btn_clear.pack(side="left")
         else:
             self.search_block.pack(side="left", padx=(0, 16))
@@ -623,6 +654,9 @@ class MainWindow(ctk.CTk):
             self.lbl_quick_filter.pack(side="left", padx=(0, 6))
             self.btn_status_filter.pack(side="left")
 
+            self.hazard_filter_block.pack(side="left")
+            self.lbl_hazard_filter.pack(side="left", padx=(0, 6))
+            self.opt_hazard_filter.pack(side="left")
             self.btn_clear.pack(side="right")
 
         # 6. Table Headers and Columns Configuration
@@ -638,7 +672,7 @@ class MainWindow(ctk.CTk):
             ("expiration_date", "col_expiration", 95, "center"),
             ("exp_status", "col_status", 105, "center"),
             ("stock_alert", "col_stock", 75, "center"),
-            ("hazards", "col_hazards", 115, "center"),
+            ("hazards", "col_hazards", 250, "center"),
         ]
 
         for col_id, col_key, width, align in col_meta:
@@ -711,12 +745,14 @@ class MainWindow(ctk.CTk):
         # Map display values to canonical query values for database
         canonical_dept = canonical_department(self.opt_department.get(), lang)
         canonical_filter = canonical_status_filter(self.btn_status_filter.get(), lang)
+        canonical_hazard = canonical_hazard_filter(self.opt_hazard_filter.get(), lang)
 
         # Query database
         chemicals = db.get_all_chemicals(
             search_query=search_query,
             department=canonical_dept,
             filter_status=canonical_filter,
+            hazard_filter=canonical_hazard,
         )
         self.cached_chemicals = chemicals
 
@@ -734,14 +770,7 @@ class MainWindow(ctk.CTk):
             is_low = c.is_low_stock()
 
             # Hazard indicators localized
-            hazards_list = []
-            if c.hazard_security:
-                hazards_list.append(t("hazard_security", lang))
-            if c.hazard_health:
-                hazards_list.append(t("hazard_health", lang))
-            if c.hazard_physical:
-                hazards_list.append(t("hazard_physical", lang))
-            hazards_str = " ".join(hazards_list) if hazards_list else t("hazard_none", lang)
+            hazards_str = self._format_hazards(c)
 
             # Localized status text
             if exp_status_canonical == "Expired":
@@ -795,12 +824,13 @@ class MainWindow(ctk.CTk):
 
         # Update Status bar
         display_filt = display_status_filter(canonical_filter, lang)
+        display_hazard = display_hazard_filter(canonical_hazard, lang)
         display_d = display_department(canonical_dept, lang)
         filter_tag = t("status_filter_tag", lang)
         dept_tag = t("status_dept_tag", lang)
         search_tag = t("status_search_tag", lang)
 
-        filter_info = f"{filter_tag}: {display_filt} | {dept_tag}: {display_d}"
+        filter_info = f"{filter_tag}: {display_filt} | {dept_tag}: {display_d} | {t('lbl_hazard_filter', lang)} {display_hazard}"
         if search_query:
             filter_info += f" | {search_tag}: '{search_query}'"
 
@@ -812,6 +842,12 @@ class MainWindow(ctk.CTk):
             filter_info=filter_info,
         )
         self.lbl_status_count.configure(text=status_text)
+
+    def _format_hazards(self, chemical: Chemical) -> str:
+        tags = chemical.get_hazard_tags()
+        if not tags:
+            return t("hazard_none", self.current_lang)
+        return " ".join(t(f"hazard_badge_{tag}", self.current_lang) for tag in tags)
 
     def _get_selected_chemical(self) -> Optional[Chemical]:
         """Returns the Chemical model corresponding to the currently selected row."""
@@ -829,6 +865,7 @@ class MainWindow(ctk.CTk):
         self.search_var.set("")
         self.opt_department.set(display_department("All", self.current_lang))
         self.btn_status_filter.set(display_status_filter("All", self.current_lang))
+        self.opt_hazard_filter.set(display_hazard_filter("All", self.current_lang))
         self.refresh_data()
 
     def _sort_by_column(self, col: str):
@@ -863,14 +900,7 @@ class MainWindow(ctk.CTk):
             exp_status_canonical = c.get_expiration_status()
             is_low = c.is_low_stock()
 
-            hazards_list = []
-            if c.hazard_security:
-                hazards_list.append(t("hazard_security", lang))
-            if c.hazard_health:
-                hazards_list.append(t("hazard_health", lang))
-            if c.hazard_physical:
-                hazards_list.append(t("hazard_physical", lang))
-            hazards_str = " ".join(hazards_list) if hazards_list else t("hazard_none", lang)
+            hazards_str = self._format_hazards(c)
 
             if exp_status_canonical == "Expired":
                 exp_status_display = t("status_expired", lang)

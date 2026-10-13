@@ -54,6 +54,8 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "filter_expiring_soon": "Expiring Soon",
         "filter_low_stock": "Low Stock",
         "filter_hazards": "Hazards",
+        "lbl_hazard_filter": "Hazard:",
+        "hazard_filter_all": "All hazards",
 
         # Table Column Headers
         "col_id": "ID",
@@ -80,6 +82,32 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "hazard_health": "☣️Hlt",
         "hazard_physical": "🔥Phy",
         "hazard_none": "None",
+        "hazard_label_cwc": "🔒 Chemical Weapons Convention (CWC)",
+        "hazard_label_theft": "🔒 High theft/diversion risk",
+        "hazard_label_other_security": "🔒 Other security risk",
+        "hazard_label_carcinogen_mutagen": "☣️ Carcinogen / mutagen",
+        "hazard_label_health_hazard": "☣️ Systemic / chronic health hazard",
+        "hazard_label_irritant_sensitizer": "⚠️ Irritant / sensitizer",
+        "hazard_label_acute_toxicity": "☠️ Acute toxicity",
+        "hazard_label_corrosive": "🧪 Corrosive",
+        "hazard_label_explosive": "💥 Explosive",
+        "hazard_label_flammable": "🔥 Flammable",
+        "hazard_label_oxidizer": "⭕ Oxidizer",
+        "hazard_label_compressed_gas": "💨 Compressed gas",
+        "hazard_label_other_physical": "⚠️ Other physical hazard",
+        "hazard_badge_cwc": "🔒CWC",
+        "hazard_badge_theft": "🔒Theft",
+        "hazard_badge_other_security": "🔒Sec",
+        "hazard_badge_carcinogen_mutagen": "☣️Carc",
+        "hazard_badge_health_hazard": "☣️Health",
+        "hazard_badge_irritant_sensitizer": "⚠️Irrit",
+        "hazard_badge_acute_toxicity": "☠️Tox",
+        "hazard_badge_corrosive": "🧪Corr",
+        "hazard_badge_explosive": "💥Expl",
+        "hazard_badge_flammable": "🔥Flam",
+        "hazard_badge_oxidizer": "⭕Oxid",
+        "hazard_badge_compressed_gas": "💨Gas",
+        "hazard_badge_other_physical": "⚠️Phys",
         "val_none": "None",
 
         # Status Bar
@@ -171,6 +199,9 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "form_btn_exp_2y": "+2 Years",
         "form_btn_no_exp": "No Expiry",
         "form_hazard_flags": "Hazard Flags:",
+        "form_hazard_security": "Security Alerts",
+        "form_hazard_health": "Health Hazards",
+        "form_hazard_physical": "Physical Hazards",
         "form_chk_security": "🔒 Security Risk (Controlled / Theft Risk)",
         "form_chk_health": "☣️ Health Hazard (Toxic / Carcinogen)",
         "form_chk_physical": "🔥 Physical Hazard (Flammable / Explosive)",
@@ -252,6 +283,8 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "filter_expiring_soon": "نزیک لە بەسەرچوون",
         "filter_low_stock": "بڕی کەم",
         "filter_hazards": "مەترسیدار",
+        "lbl_hazard_filter": "مەترسی:",
+        "hazard_filter_all": "هەموو مەترسییەکان",
 
         # Table Column Headers
         "col_id": "ژمارە",
@@ -278,6 +311,32 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "hazard_health": "☣️تەندروستی",
         "hazard_physical": "🔥فیزیایی",
         "hazard_none": "هیچ",
+        "hazard_label_cwc": "🔒 پێوەندی چەکە کیمیاییەکان (CWC)",
+        "hazard_label_theft": "🔒 مەترسیی بەرزی دزین / لادان",
+        "hazard_label_other_security": "🔒 مەترسیی ئەمنیی تر",
+        "hazard_label_carcinogen_mutagen": "☣️ شێرپەنجەدروستکەر / گۆڕانکاریی جینی",
+        "hazard_label_health_hazard": "☣️ مەترسیی تەندروستیی سیستەمی / درێژخایەن",
+        "hazard_label_irritant_sensitizer": "⚠️ هەوێنەر / هەستیارکەر",
+        "hazard_label_acute_toxicity": "☠️ ژەهراویبوونی توند",
+        "hazard_label_corrosive": "🧪 داخورێنەر",
+        "hazard_label_explosive": "💥 تەقینەوە",
+        "hazard_label_flammable": "🔥 سووتێنەر",
+        "hazard_label_oxidizer": "⭕ ئۆکسێنەر",
+        "hazard_label_compressed_gas": "💨 گازی پەستێنراو",
+        "hazard_label_other_physical": "⚠️ مەترسیی فیزیاییی تر",
+        "hazard_badge_cwc": "🔒CWC",
+        "hazard_badge_theft": "🔒دزین",
+        "hazard_badge_other_security": "🔒ئەمنی",
+        "hazard_badge_carcinogen_mutagen": "☣️شێرپە",
+        "hazard_badge_health_hazard": "☣️تەندروستی",
+        "hazard_badge_irritant_sensitizer": "⚠️هەستیار",
+        "hazard_badge_acute_toxicity": "☠️ژەهراوی",
+        "hazard_badge_corrosive": "🧪داخورێنەر",
+        "hazard_badge_explosive": "💥تەقینەوە",
+        "hazard_badge_flammable": "🔥سووتێنەر",
+        "hazard_badge_oxidizer": "⭕ئۆکسێنەر",
+        "hazard_badge_compressed_gas": "💨گاز",
+        "hazard_badge_other_physical": "⚠️فیزیایی",
         "val_none": "هیچ",
 
         # Status Bar
@@ -369,6 +428,9 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "form_btn_exp_2y": "+٢ ساڵ",
         "form_btn_no_exp": "بێ بەسەرچوون",
         "form_hazard_flags": "ئاگاداری مەترسییەکان:",
+        "form_hazard_security": "ئاگادارییە ئەمنییەکان",
+        "form_hazard_health": "مەترسییەکانی تەندروستی",
+        "form_hazard_physical": "مەترسییە فیزیاییەکان",
         "form_chk_security": "🔒 مەترسی ئەمنی (کۆنترۆڵکراو / دزین)",
         "form_chk_health": "☣️ مەترسی تەندروستی (ژەهراوی / شێرپەنجە)",
         "form_chk_physical": "🔥 مەترسی فیزیایی (سووتێنەر / تەقینەوە)",
@@ -572,6 +634,34 @@ def canonical_status_filter(display_val: str, lang: str = LANG_EN) -> str:
         if names.get(lang) == display_val or names.get(LANG_EN) == display_val or canonical == display_val:
             return canonical
     return display_val
+
+
+HAZARD_FILTER_IDS = [
+    "cwc", "theft", "other_security", "carcinogen_mutagen", "health_hazard",
+    "irritant_sensitizer", "acute_toxicity", "corrosive", "explosive", "flammable",
+    "oxidizer", "compressed_gas", "other_physical",
+]
+
+
+def get_hazard_filter_options(lang: str = LANG_EN) -> List[str]:
+    return [t("hazard_filter_all", lang)] + [t(f"hazard_label_{tag}", lang) for tag in HAZARD_FILTER_IDS]
+
+
+def canonical_hazard_filter(display_val: str, lang: str = LANG_EN) -> str:
+    if display_val == t("hazard_filter_all", lang) or display_val in ("All", "All hazards"):
+        return "All"
+    for tag in HAZARD_FILTER_IDS:
+        if display_val == t(f"hazard_label_{tag}", lang):
+            return tag
+    return display_val
+
+
+def display_hazard_filter(canonical_val: str, lang: str = LANG_EN) -> str:
+    if canonical_val == "All":
+        return t("hazard_filter_all", lang)
+    if canonical_val in HAZARD_FILTER_IDS:
+        return t(f"hazard_label_{canonical_val}", lang)
+    return canonical_val
 
 
 def display_status_filter(canonical_val: str, lang: str = LANG_EN) -> str:

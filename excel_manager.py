@@ -32,6 +32,7 @@ STANDARD_HEADERS = [
     "Security Risk",
     "Health Hazard",
     "Physical Hazard",
+    "Hazard Tags",
     "Notes",
 ]
 
@@ -54,6 +55,7 @@ COLUMN_ALIASES: Dict[str, List[str]] = {
     "hazard_security": ["security risk", "security hazard", "security", "controlled"],
     "hazard_health": ["health hazard", "health risk", "health", "toxic hazard"],
     "hazard_physical": ["physical hazard", "physical risk", "physical"],
+    "hazard_tags": ["hazard tags", "ghs hazards", "ghs classifications", "detailed hazards"],
     "notes": ["notes", "remarks", "comments", "description notes"],
 }
 
@@ -114,6 +116,7 @@ def export_chemicals_to_excel(chemicals: List[Chemical], filepath: Path) -> Tupl
                 "Security Risk": "Yes" if c.hazard_security else "No",
                 "Health Hazard": "Yes" if c.hazard_health else "No",
                 "Physical Hazard": "Yes" if c.hazard_physical else "No",
+                "Hazard Tags": "|".join(c.get_hazard_tags()),
                 "Notes": c.notes,
                 "Expiration Status": c.get_expiration_status(),
                 "Low Stock Alert": "LOW" if c.is_low_stock() else "OK",
@@ -221,6 +224,11 @@ def import_chemicals_from_excel(filepath: Path) -> Tuple[List[Chemical], List[st
         except (ValueError, TypeError):
             qty = 0.0
 
+        raw_hazard_tags = str(get_val("hazard_tags")).strip()
+        hazard_tags = [] if raw_hazard_tags.lower() in ("", "nan") else [
+            tag.strip() for tag in raw_hazard_tags.replace(";", "|").split("|") if tag.strip()
+        ]
+
         chem = Chemical(
             barcode=barcode_val,
             name=name_val,
@@ -239,6 +247,7 @@ def import_chemicals_from_excel(filepath: Path) -> Tuple[List[Chemical], List[st
             hazard_security=_parse_bool(get_val("hazard_security")),
             hazard_health=_parse_bool(get_val("hazard_health")),
             hazard_physical=_parse_bool(get_val("hazard_physical")),
+            hazard_tags=hazard_tags,
             notes=str(get_val("notes")),
         )
         chemicals.append(chem)

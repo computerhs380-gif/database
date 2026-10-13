@@ -14,7 +14,7 @@ import tkinter.filedialog as fd
 
 import customtkinter as ctk
 
-from models import Chemical
+from models import Chemical, HAZARD_GROUPS
 from config import UNITS
 from ui.styles import FONTS
 from locales import (
@@ -326,39 +326,52 @@ class ChemicalDialog(ctk.CTkToplevel):
         # --- SECTION 4: SAFETY, HAZARDS & NOTES ---
         sec4 = self._create_section(self.scroll_frame, t("form_sec4_title", self.lang))
 
-        # Hazards Checkboxes
+        # Color-coded detailed hazard classifications
         f_haz = ctk.CTkFrame(sec4, fg_color="transparent")
         f_haz.pack(fill="x", pady=6)
 
-        lbl_hf = ctk.CTkLabel(f_haz, text=t("form_hazard_flags", self.lang), width=160, anchor=text_anchor, font=FONTS["body_bold"])
-        lbl_hf.pack(side=label_side, padx=(6, 0) if self.rtl else (0, 6))
-
-        self.chk_security = ctk.CTkCheckBox(
+        lbl_hf = ctk.CTkLabel(
             f_haz,
-            text=t("form_chk_security", self.lang),
-            font=FONTS["body"],
-            checkbox_height=20,
-            checkbox_width=20,
+            text=t("form_hazard_flags", self.lang),
+            anchor=text_anchor,
+            font=FONTS["body_bold"],
         )
-        self.chk_security.pack(side=input_side, padx=(0, 15) if not self.rtl else (15, 0))
+        lbl_hf.pack(fill="x", pady=(0, 6))
 
-        self.chk_health = ctk.CTkCheckBox(
-            f_haz,
-            text=t("form_chk_health", self.lang),
-            font=FONTS["body"],
-            checkbox_height=20,
-            checkbox_width=20,
-        )
-        self.chk_health.pack(side=input_side, padx=(0, 15) if not self.rtl else (15, 0))
-
-        self.chk_physical = ctk.CTkCheckBox(
-            f_haz,
-            text=t("form_chk_physical", self.lang),
-            font=FONTS["body"],
-            checkbox_height=20,
-            checkbox_width=20,
-        )
-        self.chk_physical.pack(side=input_side)
+        hazard_cards = ctk.CTkFrame(f_haz, fg_color="transparent")
+        hazard_cards.pack(fill="x")
+        self.hazard_checkboxes = {}
+        groups = [
+            ("security", "#EF4444"),
+            ("health", "#3B82F6"),
+            ("physical", "#F59E0B"),
+        ]
+        if self.rtl:
+            groups.reverse()
+        for column, (group, color) in enumerate(groups):
+            card = ctk.CTkFrame(hazard_cards, border_width=1, border_color=color, corner_radius=8)
+            card.grid(row=0, column=column, sticky="nsew", padx=4)
+            hazard_cards.grid_columnconfigure(column, weight=1, uniform="hazard_cards")
+            heading = ctk.CTkLabel(
+                card,
+                text=t(f"form_hazard_{group}", self.lang),
+                font=FONTS["body_bold"],
+                text_color=color,
+                anchor=text_anchor,
+            )
+            heading.pack(fill="x", padx=10, pady=(8, 4))
+            for hazard_id in HAZARD_GROUPS[group]:
+                checkbox = ctk.CTkCheckBox(
+                    card,
+                    text=t(f"hazard_label_{hazard_id}", self.lang),
+                    font=FONTS["caption"],
+                    checkbox_height=18,
+                    checkbox_width=18,
+                    fg_color=color,
+                    hover_color=color,
+                )
+                checkbox.pack(fill="x", padx=10, pady=3)
+                self.hazard_checkboxes[hazard_id] = checkbox
 
         # MSDS Row
         f_msds = ctk.CTkFrame(sec4, fg_color="transparent")
@@ -525,12 +538,10 @@ class ChemicalDialog(ctk.CTkToplevel):
         if c.units in UNITS:
             self.opt_units.set(c.units)
 
-        if c.hazard_security:
-            self.chk_security.select()
-        if c.hazard_health:
-            self.chk_health.select()
-        if c.hazard_physical:
-            self.chk_physical.select()
+        for hazard_id in c.get_hazard_tags():
+            checkbox = self.hazard_checkboxes.get(hazard_id)
+            if checkbox:
+                checkbox.select()
 
     def _validate_form(self) -> Optional[Chemical]:
         """Validates input fields and constructs a Chemical object."""
@@ -585,6 +596,10 @@ class ChemicalDialog(ctk.CTkToplevel):
         canonical_grp = canonical_storage_group(self.opt_storage_group.get(), self.lang)
         canonical_st = canonical_physical_state(self.opt_state.get(), self.lang)
 
+        selected_hazards = [
+            hazard_id for hazard_id, checkbox in self.hazard_checkboxes.items()
+            if checkbox.get()
+        ]
         return Chemical(
             id=chem_id,
             barcode=barcode,
@@ -600,9 +615,10 @@ class ChemicalDialog(ctk.CTkToplevel):
             state=canonical_st,
             msds=self.entry_msds.get().strip(),
             department=canonical_dept,
-            hazard_security=bool(self.chk_security.get()),
-            hazard_health=bool(self.chk_health.get()),
-            hazard_physical=bool(self.chk_physical.get()),
+            hazard_security=any(tag in HAZARD_GROUPS["security"] for tag in selected_hazards),
+            hazard_health=any(tag in HAZARD_GROUPS["health"] for tag in selected_hazards),
+            hazard_physical=any(tag in HAZARD_GROUPS["physical"] for tag in selected_hazards),
+            hazard_tags=selected_hazards,
             notes=self.txt_notes.get("0.0", "end").strip(),
         )
 

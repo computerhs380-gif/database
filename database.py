@@ -3,6 +3,7 @@ SQLite Database Layer for Chemical Inventory Management System.
 Handles schema initialization, CRUD operations, transactions, and search queries.
 """
 
+import json
 import sqlite3
 from datetime import datetime, date
 from typing import List, Optional, Tuple, Dict, Any
@@ -47,6 +48,7 @@ class DatabaseManager:
                     hazard_security INTEGER DEFAULT 0,
                     hazard_health INTEGER DEFAULT 0,
                     hazard_physical INTEGER DEFAULT 0,
+                    hazard_tags TEXT NOT NULL DEFAULT '[]',
                     notes TEXT,
                     created_at TEXT,
                     updated_at TEXT
@@ -59,6 +61,27 @@ class DatabaseManager:
             existing_columns = [row[1] for row in cursor.fetchall()]
             if "college" not in existing_columns:
                 cursor.execute("ALTER TABLE chemicals ADD COLUMN college TEXT DEFAULT 'College of Science'")
+            if "hazard_tags" not in existing_columns:
+                cursor.execute("ALTER TABLE chemicals ADD COLUMN hazard_tags TEXT NOT NULL DEFAULT '[]'")
+
+            # Preserve old broad flags without pretending they identify a specific GHS class.
+            cursor.execute(
+                "SELECT id, hazard_security, hazard_health, hazard_physical "
+                "FROM chemicals WHERE hazard_tags IS NULL OR hazard_tags = '' OR hazard_tags = '[]'"
+            )
+            for row in cursor.fetchall():
+                tags = []
+                if row[1]:
+                    tags.append("other_security")
+                if row[2]:
+                    tags.append("health_hazard")
+                if row[3]:
+                    tags.append("other_physical")
+                if tags:
+                    cursor.execute(
+                        "UPDATE chemicals SET hazard_tags = ? WHERE id = ?",
+                        (json.dumps(tags), row[0]),
+                    )
 
             # Update existing records to match college hierarchy if needed
             cursor.execute(
@@ -86,6 +109,7 @@ class DatabaseManager:
         Returns (success: bool, message: str, new_id: Optional[int]).
         """
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        chem.sync_hazard_flags()
         chem.created_at = now
         chem.updated_at = now
 
@@ -98,8 +122,8 @@ class DatabaseManager:
                         barcode, name, cas_number, location, date_in, expiration_date,
                         storage_group, container_size, remaining_quantity, units,
                         state, msds, college, department, hazard_security, hazard_health,
-                        hazard_physical, notes, created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        hazard_physical, hazard_tags, notes, created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         chem.barcode.strip(),
@@ -119,6 +143,7 @@ class DatabaseManager:
                         1 if chem.hazard_security else 0,
                         1 if chem.hazard_health else 0,
                         1 if chem.hazard_physical else 0,
+                        json.dumps(chem.hazard_tags),
                         chem.notes.strip(),
                         chem.created_at,
                         chem.updated_at,
@@ -143,6 +168,7 @@ class DatabaseManager:
             return False, "Cannot update chemical without a valid ID."
 
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        chem.sync_hazard_flags()
         chem.updated_at = now
 
         try:
@@ -168,6 +194,7 @@ class DatabaseManager:
                         hazard_security = ?,
                         hazard_health = ?,
                         hazard_physical = ?,
+                        hazard_tags = ?,
                         notes = ?,
                         updated_at = ?
                     WHERE id = ?
@@ -190,6 +217,7 @@ class DatabaseManager:
                         1 if chem.hazard_security else 0,
                         1 if chem.hazard_health else 0,
                         1 if chem.hazard_physical else 0,
+                        json.dumps(chem.hazard_tags),
                         chem.notes.strip(),
                         chem.updated_at,
                         chem.id,
@@ -245,6 +273,7 @@ class DatabaseManager:
         college: str = "All",
         department: str = "All",
         filter_status: str = "All",
+        hazard_filter: str = "All",
     ) -> List[Chemical]:
         """
         Query chemicals with flexible search, college & department filtering, and alert filtering.
@@ -284,6 +313,10 @@ class DatabaseManager:
             params.append(LOW_STOCK_DEFAULT_THRESHOLD)
         elif filter_status == "Hazards":
             query += " AND (hazard_security = 1 OR hazard_health = 1 OR hazard_physical = 1)"
+
+        if hazard_filter and hazard_filter != "All":
+            query += " AND hazard_tags LIKE ?"
+            params.append(f'%"{hazard_filter}"%')
 
         query += " ORDER BY id DESC"
 
@@ -373,6 +406,7 @@ class DatabaseManager:
                     if overwrite_existing:
                         chem.id = existing[0]
                         chem.updated_at = now
+                        chem.sync_hazard_flags()
                         cursor.execute(
                             """
                             UPDATE chemicals SET
@@ -380,7 +414,7 @@ class DatabaseManager:
                                 expiration_date = ?, storage_group = ?, container_size = ?,
                                 remaining_quantity = ?, units = ?, state = ?, msds = ?,
                                 college = ?, department = ?, hazard_security = ?, hazard_health = ?,
-                                hazard_physical = ?, notes = ?, updated_at = ?
+                                hazard_physical = ?, hazard_tags = ?, notes = ?, updated_at = ?
                             WHERE id = ?
                             """,
                             (
@@ -400,6 +434,7 @@ class DatabaseManager:
                                 1 if chem.hazard_security else 0,
                                 1 if chem.hazard_health else 0,
                                 1 if chem.hazard_physical else 0,
+                                json.dumps(chem.hazard_tags),
                                 chem.notes.strip(),
                                 chem.updated_at,
                                 chem.id,
@@ -411,14 +446,15 @@ class DatabaseManager:
                 else:
                     chem.created_at = now
                     chem.updated_at = now
+                    chem.sync_hazard_flags()
                     cursor.execute(
                         """
                         INSERT INTO chemicals (
                             barcode, name, cas_number, location, date_in, expiration_date,
                             storage_group, container_size, remaining_quantity, units,
                             state, msds, college, department, hazard_security, hazard_health,
-                            hazard_physical, notes, created_at, updated_at
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            hazard_physical, hazard_tags, notes, created_at, updated_at
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         (
                             chem.barcode.strip(),
@@ -438,6 +474,7 @@ class DatabaseManager:
                             1 if chem.hazard_security else 0,
                             1 if chem.hazard_health else 0,
                             1 if chem.hazard_physical else 0,
+                            json.dumps(chem.hazard_tags),
                             chem.notes.strip(),
                             chem.created_at,
                             chem.updated_at,

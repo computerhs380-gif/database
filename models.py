@@ -2,10 +2,22 @@
 Data models for Chemical Inventory Management System.
 """
 
+import json
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, date
 from typing import Optional, Dict, Any
 from config import EXPIRING_SOON_DAYS, LOW_STOCK_DEFAULT_THRESHOLD
+
+HAZARD_GROUPS = {
+    "security": ("cwc", "theft", "other_security"),
+    "health": ("carcinogen_mutagen", "health_hazard", "irritant_sensitizer", "acute_toxicity"),
+    "physical": ("corrosive", "explosive", "flammable", "oxidizer", "compressed_gas", "other_physical"),
+}
+LEGACY_HAZARD_TAGS = {
+    "security": "other_security",
+    "health": "health_hazard",
+    "physical": "other_physical",
+}
 
 
 @dataclass
@@ -28,6 +40,7 @@ class Chemical:
     hazard_security: bool = False
     hazard_health: bool = False
     hazard_physical: bool = False
+    hazard_tags: list = field(default_factory=list)
     notes: str = ""
     created_at: str = ""
     updated_at: str = ""
@@ -62,7 +75,31 @@ class Chemical:
 
     def has_any_hazard(self) -> bool:
         """Returns True if any hazard flag is active."""
-        return bool(self.hazard_security or self.hazard_health or self.hazard_physical)
+        return bool(self.get_hazard_tags())
+
+    def get_hazard_tags(self) -> list:
+        """Return valid detailed tags, conservatively preserving legacy broad flags."""
+        valid_tags = {tag for group in HAZARD_GROUPS.values() for tag in group}
+        tags = list(dict.fromkeys(tag for tag in self.hazard_tags if tag in valid_tags))
+        if tags:
+            return tags
+        legacy_flags = {
+            "security": self.hazard_security,
+            "health": self.hazard_health,
+            "physical": self.hazard_physical,
+        }
+        for group, legacy_tag in LEGACY_HAZARD_TAGS.items():
+            if legacy_flags[group] and not any(tag in HAZARD_GROUPS[group] for tag in tags):
+                tags.append(legacy_tag)
+        return tags
+
+    def sync_hazard_flags(self) -> None:
+        """Keep legacy broad flags aligned with the detailed classifications."""
+        tags = self.get_hazard_tags()
+        self.hazard_tags = tags
+        self.hazard_security = any(tag in HAZARD_GROUPS["security"] for tag in tags)
+        self.hazard_health = any(tag in HAZARD_GROUPS["health"] for tag in tags)
+        self.hazard_physical = any(tag in HAZARD_GROUPS["physical"] for tag in tags)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert dataclass to dictionary."""
@@ -95,7 +132,18 @@ class Chemical:
             hazard_security=bool(data.get("hazard_security", 0)),
             hazard_health=bool(data.get("hazard_health", 0)),
             hazard_physical=bool(data.get("hazard_physical", 0)),
+            hazard_tags=_parse_hazard_tags(data.get("hazard_tags")),
             notes=str(data.get("notes") or ""),
             created_at=str(data.get("created_at") or ""),
             updated_at=str(data.get("updated_at") or "")
         )
+
+
+def _parse_hazard_tags(value) -> list:
+    if not value:
+        return []
+    try:
+        tags = json.loads(value) if isinstance(value, str) else value
+        return tags if isinstance(tags, list) else []
+    except (TypeError, ValueError):
+        return []
