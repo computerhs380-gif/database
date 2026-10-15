@@ -55,6 +55,14 @@ class DatabaseManager:
                 )
                 """
             )
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS app_metadata (
+                    key TEXT PRIMARY KEY,
+                    value TEXT NOT NULL
+                )
+                """
+            )
 
             # Safe migration: Add 'college' column if it does not exist yet
             cursor.execute("PRAGMA table_info(chemicals)")
@@ -147,8 +155,8 @@ class DatabaseManager:
                         chem.updated_at,
                     ),
                 )
-                new_id = cursor.lastrowid
                 conn.commit()
+                new_id = cursor.lastrowid
                 return True, "Chemical added successfully!", new_id
         except sqlite3.IntegrityError as e:
             if "UNIQUE constraint failed: chemicals.barcode" in str(e):
@@ -242,6 +250,32 @@ class DatabaseManager:
                 return False, "Record not found."
         except Exception as e:
             return False, f"Error deleting chemical: {str(e)}"
+
+    def has_seeded_initial_data(self) -> bool:
+        """Return whether sample data was handled or chemicals existed previously."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT 1 FROM app_metadata WHERE key = ?",
+                ("initial_data_seeded",),
+            )
+            if cursor.fetchone():
+                return True
+
+            cursor.execute(
+                "SELECT 1 FROM sqlite_sequence WHERE name = ?",
+                ("chemicals",),
+            )
+            return cursor.fetchone() is not None
+
+    def mark_initial_data_seeded(self) -> None:
+        """Persist that first-run sample-data initialization has been handled."""
+        with self.get_connection() as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO app_metadata (key, value) VALUES (?, ?)",
+                ("initial_data_seeded", "1"),
+            )
+            conn.commit()
 
     def get_chemical_by_id(self, chemical_id: int) -> Optional[Chemical]:
         """Retrieves a single chemical by ID."""

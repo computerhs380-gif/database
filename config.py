@@ -3,6 +3,7 @@ Configuration settings for Chemical Inventory Management System (CIMS).
 """
 
 from pathlib import Path
+import sys
 
 # Application Metadata
 APP_TITLE = "Chemical Inventory Management System (CIMS)"
@@ -10,7 +11,10 @@ APP_VERSION = "1.0.0"
 APP_SUBTITLE = "University Laboratory Chemical & Safety Tracker"
 
 # Paths
-BASE_DIR = Path(__file__).resolve().parent
+if getattr(sys, "frozen", False):
+    BASE_DIR = Path(sys.executable).parent
+else:
+    BASE_DIR = Path(__file__).resolve().parent
 DATABASE_PATH = BASE_DIR / "cims_inventory.db"
 SAMPLE_DATA_DIR = BASE_DIR / "sample_data"
 SAMPLE_DATA_DIR.mkdir(exist_ok=True)

@@ -765,13 +765,17 @@ class MainWindow(ctk.CTk):
         self.refresh_data()
 
     def _seed_initial_data_if_empty(self):
-        """If the database is completely empty on first launch, load realistic sample chemicals."""
+        """Load sample chemicals once, without restoring a deliberately emptied inventory."""
+        if db.has_seeded_initial_data():
+            return
+
         stats = db.get_dashboard_stats()
         if stats["total"] == 0:
             generate_sample_excel_file(SAMPLE_EXCEL_PATH)
             sample_chems, _ = import_chemicals_from_excel(SAMPLE_EXCEL_PATH)
             if sample_chems:
                 db.bulk_upsert_chemicals(sample_chems)
+        db.mark_initial_data_seeded()
 
     def refresh_data(self):
         """Fetch filtered chemicals from database, populate Treeview, and update stat cards."""
