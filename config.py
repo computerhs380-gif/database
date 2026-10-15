@@ -21,8 +21,8 @@ EXPIRING_SOON_DAYS = 30  # Days threshold to mark chemical as expiring soon
 LOW_STOCK_DEFAULT_THRESHOLD = 5.0  # Default value for low quantity alert
 
 COLLEGES_AND_DEPARTMENTS = {
-    "College of Education": ["Chemistry", "Biology", "Physics"],
     "College of Science": ["Chemistry", "Food Science", "Biomedical Science"],
+    "College of Education": ["Chemistry", "Physics", "Biology"],
     "College of Medicine": ["General Medicine"],
 }
 COLLEGES = list(COLLEGES_AND_DEPARTMENTS.keys())
@@ -114,4 +114,3 @@ def set_setting(key: str, value) -> None:
     settings = load_settings()
     settings[key] = value
     save_settings(settings)
-

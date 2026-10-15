@@ -1,7 +1,13 @@
 # Chemical Inventory Management System (CIMS)
 **A Standalone Local Desktop Application for University Laboratory Safety & Inventory Tracking**
 
-Designed for university departments (Chemistry, Biology, Physics, Biochemistry, etc.) to manage chemicals locally with an intuitive, modern, lab-assistant-friendly graphical interface.
+Designed around the university's official college and department hierarchy:
+
+- **College of Science**: Chemistry, Food Science, Biomedical Science
+- **College of Education**: Chemistry, Physics, Biology
+- **College of Medicine**: General Medicine
+
+Manage chemicals locally with an intuitive, modern, lab-assistant-friendly graphical interface.
 
 ---
 
@@ -20,7 +26,7 @@ Designed for university departments (Chemistry, Biology, Physics, Biochemistry, 
 
 3. **High-Performance Search & Multi-Filter**:
    - Real-time search across Barcode, Chemical Name, CAS Number, and Storage Location.
-   - Filter by Department (Chemistry, Biology, Physics, Biochemistry, etc.).
+   - Filter by College and by the departments belonging to the selected college.
    - Sortable columns (click any column header to sort ascending/descending).
    - High-contrast color-coded alerts (Red for Expired, Amber for Expiring Soon, Orange for Low Stock).
 
@@ -90,7 +96,8 @@ python app.py
 | **Units** | Text (Dropdown) | Measurement units (*mL*, *L*, *g*, *mg*, *kg*, etc.) |
 | **State** | Text (Dropdown) | Physical state (*Liquid*, *Solid*, *Powder*, *Pellets*, *Gas*, etc.) |
 | **MSDS** | Text (URL / Path) | Link to web MSDS or path to local PDF safety data sheet |
-| **Owner / Department** | Text (Dropdown) | Managing department (*Chemistry*, *Biology*, *Physics*, etc.) |
+| **College** | Text (Dropdown) | University college |
+| **Department** | Text (Dropdown) | Department belonging to the selected college |
 | **Security Risk** | Boolean (Checkbox) | Controlled substance or high-theft risk |
 | **Health Hazard** | Boolean (Checkbox) | Toxic, carcinogenic, or irritant |
 | **Physical Hazard** | Boolean (Checkbox) | Flammable, explosive, or reactive |

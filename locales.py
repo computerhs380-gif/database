@@ -230,8 +230,8 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
 
         # Colleges & Departments
         "College": "College",
-        "College of Education": "College of Education",
         "College of Science": "College of Science",
+        "College of Education": "College of Education",
         "College of Medicine": "College of Medicine",
         "Chemistry": "Chemistry",
         "Biology": "Biology",
@@ -464,7 +464,7 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "Chemistry": "کیمیا",
         "Biology": "بایۆلۆجی",
         "Physics": "فیزیا",
-        "Food Science": "خۆراک",
+        "Food Science": "خۆراکزانی",
         "Biomedical Science": "بایۆمێدیکاڵ",
         "General Medicine": "پزیشکیی گشتی",
     },
@@ -473,8 +473,8 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
 # College translations mapping (English canonical <-> Kurdish display)
 COLLEGE_MAP = {
     "All": {"en": "All", "ku": "هەموو"},
-    "College of Education": {"en": "College of Education", "ku": "کۆلێژی پەروەردە"},
     "College of Science": {"en": "College of Science", "ku": "کۆلێژی زانست"},
+    "College of Education": {"en": "College of Education", "ku": "کۆلێژی پەروەردە"},
     "College of Medicine": {"en": "College of Medicine", "ku": "کۆلێژی پزیشکی"},
 }
 
@@ -484,7 +484,7 @@ DEPARTMENT_MAP = {
     "Chemistry": {"en": "Chemistry", "ku": "کیمیا"},
     "Biology": {"en": "Biology", "ku": "بایۆلۆجی"},
     "Physics": {"en": "Physics", "ku": "فیزیا"},
-    "Food Science": {"en": "Food Science", "ku": "خۆراک"},
+    "Food Science": {"en": "Food Science", "ku": "خۆراکزانی"},
     "Biomedical Science": {"en": "Biomedical Science", "ku": "بایۆمێدیکاڵ"},
     "General Medicine": {"en": "General Medicine", "ku": "پزیشکیی گشتی"},
 }
@@ -568,7 +568,7 @@ def get_college_options(lang: str = LANG_EN, include_all: bool = True) -> List[s
 def canonical_college(display_val: str, lang: str = LANG_EN) -> str:
     """Maps a localized college display string back to canonical English string."""
     for canonical, names in COLLEGE_MAP.items():
-        if names.get(lang) == display_val or names.get(LANG_EN) == display_val or canonical == display_val:
+        if display_val in names.values() or canonical == display_val:
             return canonical
     return display_val
 
@@ -588,6 +588,8 @@ def get_department_options(lang: str = LANG_EN, include_all: bool = True, colleg
     items = []
     if include_all:
         items.append(DEPARTMENT_MAP["All"].get(lang, "All"))
+    if college == "All":
+        return items
     if college and college != "All":
         # Only show departments that belong to this college
         depts = COLLEGES_AND_DEPARTMENTS.get(college, [])
@@ -610,7 +612,7 @@ def get_department_options(lang: str = LANG_EN, include_all: bool = True, colleg
 def canonical_department(display_val: str, lang: str = LANG_EN) -> str:
     """Maps a localized department display string back to canonical English string."""
     for canonical, names in DEPARTMENT_MAP.items():
-        if names.get(lang) == display_val or names.get(LANG_EN) == display_val or canonical == display_val:
+        if display_val in names.values() or canonical == display_val:
             return canonical
     return display_val
 

@@ -21,6 +21,9 @@ from locales import (
     t,
     is_rtl,
     LANG_EN,
+    get_college_options,
+    canonical_college,
+    display_college,
     get_department_options,
     canonical_department,
     display_department,
@@ -156,6 +159,29 @@ class ChemicalDialog(ctk.CTkToplevel):
         )
         self.entry_name.pack(side=input_side, fill="x", expand=True)
 
+        # College Row
+        f_college = ctk.CTkFrame(sec1, fg_color="transparent")
+        f_college.pack(fill="x", pady=4)
+
+        lbl_college = ctk.CTkLabel(
+            f_college,
+            text=t("form_college", self.lang),
+            width=160,
+            anchor=text_anchor,
+            font=FONTS["body_bold"],
+        )
+        lbl_college.pack(side=label_side, padx=(6, 0) if self.rtl else (0, 6))
+
+        self.opt_college = ctk.CTkOptionMenu(
+            f_college,
+            values=get_college_options(self.lang, include_all=False),
+            command=self._on_college_changed,
+            width=260,
+            font=FONTS["body"],
+        )
+        self.opt_college.pack(side=input_side, fill="x", expand=True)
+        self.opt_college.set(display_college("College of Science", self.lang))
+
         # CAS Number & Department Row
         f_cas_dept = ctk.CTkFrame(sec1, fg_color="transparent")
         f_cas_dept.pack(fill="x", pady=4)
@@ -164,9 +190,17 @@ class ChemicalDialog(ctk.CTkToplevel):
             # Department first (on right), then CAS on left
             lbl_dept = ctk.CTkLabel(f_cas_dept, text=t("form_department", self.lang), width=120, anchor="e", font=FONTS["body_bold"])
             lbl_dept.pack(side="right", padx=(6, 0))
-            dept_choices = get_department_options(self.lang, include_all=False)
-            self.opt_department = ctk.CTkOptionMenu(f_cas_dept, values=dept_choices, font=FONTS["body"], width=170)
+            dept_choices = get_department_options(
+                self.lang, include_all=False, college="College of Science"
+            )
+            self.opt_department = ctk.CTkOptionMenu(
+                f_cas_dept,
+                values=dept_choices,
+                font=FONTS["body"],
+                width=170,
+            )
             self.opt_department.pack(side="right", padx=(0, 15))
+            self.opt_department.set(display_department("Chemistry", self.lang))
 
             lbl_cas = ctk.CTkLabel(f_cas_dept, text=t("form_cas", self.lang), width=100, anchor="e", font=FONTS["body"])
             lbl_cas.pack(side="right", padx=(6, 0))
@@ -180,9 +214,16 @@ class ChemicalDialog(ctk.CTkToplevel):
 
             lbl_dept = ctk.CTkLabel(f_cas_dept, text=t("form_department", self.lang), width=110, anchor="w", font=FONTS["body_bold"])
             lbl_dept.pack(side="left", padx=(0, 6))
-            dept_choices = get_department_options(self.lang, include_all=False)
-            self.opt_department = ctk.CTkOptionMenu(f_cas_dept, values=dept_choices, font=FONTS["body"])
+            dept_choices = get_department_options(
+                self.lang, include_all=False, college="College of Science"
+            )
+            self.opt_department = ctk.CTkOptionMenu(
+                f_cas_dept,
+                values=dept_choices,
+                font=FONTS["body"],
+            )
             self.opt_department.pack(side="left", fill="x", expand=True)
+            self.opt_department.set(display_department("Chemistry", self.lang))
 
         # --- SECTION 2: STORAGE & CONTAINER ---
         sec2 = self._create_section(self.scroll_frame, t("form_sec2_title", self.lang))
@@ -526,6 +567,9 @@ class ChemicalDialog(ctk.CTkToplevel):
         self.txt_notes.insert("0.0", c.notes or "")
 
         # Map canonical DB values to display values for dropdowns
+        disp_college = display_college(c.college, self.lang)
+        self.opt_college.set(disp_college)
+        self._on_college_changed(disp_college, preserve_department=True)
         disp_dept = display_department(c.department, self.lang)
         self.opt_department.set(disp_dept)
 
@@ -542,6 +586,24 @@ class ChemicalDialog(ctk.CTkToplevel):
             checkbox = self.hazard_checkboxes.get(hazard_id)
             if checkbox:
                 checkbox.select()
+
+    def _on_college_changed(self, value: str, preserve_department: bool = False):
+        """Restrict department choices to the selected college."""
+        current_department = canonical_department(self.opt_department.get(), self.lang)
+        college = canonical_college(value, self.lang)
+        departments = get_department_options(
+            self.lang, include_all=False, college=college
+        )
+        self.opt_department.configure(values=departments)
+        if preserve_department and current_department in {
+            canonical_department(option, self.lang) for option in departments
+        }:
+            selected = current_department
+        else:
+            selected = get_department_options(
+                LANG_EN, include_all=False, college=college
+            )[0]
+        self.opt_department.set(display_department(selected, self.lang))
 
     def _validate_form(self) -> Optional[Chemical]:
         """Validates input fields and constructs a Chemical object."""
@@ -592,6 +654,7 @@ class ChemicalDialog(ctk.CTkToplevel):
         chem_id = self.chemical.id if self.chemical else None
 
         # Convert localized dropdown choices back to canonical DB values
+        canonical_college_value = canonical_college(self.opt_college.get(), self.lang)
         canonical_dept = canonical_department(self.opt_department.get(), self.lang)
         canonical_grp = canonical_storage_group(self.opt_storage_group.get(), self.lang)
         canonical_st = canonical_physical_state(self.opt_state.get(), self.lang)
@@ -614,6 +677,7 @@ class ChemicalDialog(ctk.CTkToplevel):
             units=self.opt_units.get(),
             state=canonical_st,
             msds=self.entry_msds.get().strip(),
+            college=canonical_college_value,
             department=canonical_dept,
             hazard_security=any(tag in HAZARD_GROUPS["security"] for tag in selected_hazards),
             hazard_health=any(tag in HAZARD_GROUPS["health"] for tag in selected_hazards),

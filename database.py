@@ -83,16 +83,14 @@ class DatabaseManager:
                         (json.dumps(tags), row[0]),
                     )
 
-            # Update existing records to match college hierarchy if needed
-            cursor.execute(
-                "UPDATE chemicals SET college = 'College of Education' WHERE department IN ('Biology', 'Physics') AND (college IS NULL OR college = '' OR college = 'College of Science')"
-            )
-            cursor.execute(
-                "UPDATE chemicals SET college = 'College of Medicine' WHERE department = 'General Medicine' AND (college IS NULL OR college = '')"
-            )
-            cursor.execute(
-                "UPDATE chemicals SET college = 'College of Science' WHERE college IS NULL OR college = ''"
-            )
+            # Normalize records from earlier schemas once, without overwriting
+            # college/department selections made after this migration.
+            cursor.execute("PRAGMA user_version")
+            if cursor.fetchone()[0] < 1:
+                cursor.execute(
+                    "UPDATE chemicals SET college = 'College of Science', department = 'Chemistry'"
+                )
+                cursor.execute("PRAGMA user_version = 1")
 
             # Performance indexes for fast searching and filtering
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_chem_barcode ON chemicals(barcode)")

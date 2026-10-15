@@ -34,6 +34,9 @@ from locales import (
     is_rtl,
     LANG_EN,
     LANG_KU,
+    get_college_options,
+    canonical_college,
+    display_college,
     get_department_options,
     canonical_department,
     display_department,
@@ -67,6 +70,7 @@ class MainWindow(ctk.CTk):
 
         # State Variables
         self.search_var = tk.StringVar()
+        self.college_var = tk.StringVar(value="All")
         self.department_var = tk.StringVar(value="All")
         self.status_filter_var = tk.StringVar(value="All")
         self.sort_column = "id"
@@ -321,10 +325,22 @@ class MainWindow(ctk.CTk):
         )
         self.search_var.trace_add("write", lambda *args: self._on_filter_changed())
 
+        # College Block
+        self.college_block = ctk.CTkFrame(self.filter_primary, fg_color="transparent")
+        self.lbl_college = ctk.CTkLabel(self.college_block, text="", font=FONTS["body_bold"])
+        self.opt_college = ctk.CTkOptionMenu(
+            self.college_block,
+            values=get_college_options(self.current_lang),
+            command=self._on_college_filter_changed,
+            width=190,
+            font=FONTS["body"],
+        )
+        self.opt_college.set(display_college("All", self.current_lang))
+
         # Department Block
         self.dept_block = ctk.CTkFrame(self.filter_primary, fg_color="transparent")
         self.lbl_department = ctk.CTkLabel(self.dept_block, text="", font=FONTS["body_bold"])
-        dept_options = get_department_options(self.current_lang)
+        dept_options = get_department_options(self.current_lang, college="All")
         self.opt_department = ctk.CTkOptionMenu(
             self.dept_block,
             values=dept_options,
@@ -335,7 +351,7 @@ class MainWindow(ctk.CTk):
         self.opt_department.set(display_department("All", self.current_lang))
 
         # Quick Filter Block
-        self.qfilter_block = ctk.CTkFrame(self.filter_primary, fg_color="transparent")
+        self.qfilter_block = ctk.CTkFrame(self.filter_secondary, fg_color="transparent")
         self.lbl_quick_filter = ctk.CTkLabel(self.qfilter_block, text="", font=FONTS["body_bold"])
         status_options = get_status_filter_options(self.current_lang)
         self.btn_status_filter = ctk.CTkSegmentedButton(
@@ -382,6 +398,7 @@ class MainWindow(ctk.CTk):
             "barcode",
             "name",
             "cas_number",
+            "college",
             "department",
             "location",
             "remaining_quantity",
@@ -586,15 +603,25 @@ class MainWindow(ctk.CTk):
         # 5. Search & Filter Bar Layout & Content
         self.lbl_search.configure(text=t("lbl_search", lang))
         self.entry_search.configure(placeholder_text=t("placeholder_search", lang))
+        self.lbl_college.configure(text=t("lbl_college", lang))
         self.lbl_department.configure(text=t("lbl_department", lang))
         self.lbl_quick_filter.configure(text=t("lbl_quick_filter", lang))
         self.lbl_hazard_filter.configure(text=t("lbl_hazard_filter", lang))
         self.btn_clear.configure(text=t("btn_clear_filters", lang))
 
-        # Update department options and retain current selection
-        cur_canonical_dept = canonical_department(self.opt_department.get(), LANG_KU if lang == LANG_EN else LANG_EN)
-        dept_options = get_department_options(lang)
+        # Update college and department options while retaining valid selections.
+        previous_lang = LANG_KU if lang == LANG_EN else LANG_EN
+        cur_canonical_college = canonical_college(self.opt_college.get(), previous_lang)
+        cur_canonical_dept = canonical_department(self.opt_department.get(), previous_lang)
+        self.opt_college.configure(values=get_college_options(lang))
+        self.opt_college.set(display_college(cur_canonical_college, lang))
+        self.college_var.set(cur_canonical_college)
+        dept_options = get_department_options(lang, college=cur_canonical_college)
         self.opt_department.configure(values=dept_options)
+        if cur_canonical_dept not in {
+            canonical_department(option, lang) for option in dept_options
+        }:
+            cur_canonical_dept = "All"
         self.opt_department.set(display_department(cur_canonical_dept, lang))
 
         # Update status quick filter options and retain current selection
@@ -613,6 +640,9 @@ class MainWindow(ctk.CTk):
         self.search_block.pack_forget()
         self.lbl_search.pack_forget()
         self.entry_search.pack_forget()
+        self.college_block.pack_forget()
+        self.lbl_college.pack_forget()
+        self.opt_college.pack_forget()
         self.dept_block.pack_forget()
         self.lbl_department.pack_forget()
         self.opt_department.pack_forget()
@@ -628,6 +658,10 @@ class MainWindow(ctk.CTk):
             self.search_block.pack(side="right", padx=(0, 16))
             self.lbl_search.pack(side="right", padx=(6, 0))
             self.entry_search.pack(side="right")
+
+            self.college_block.pack(side="right", padx=(0, 16))
+            self.lbl_college.pack(side="right", padx=(6, 0))
+            self.opt_college.pack(side="right")
 
             self.dept_block.pack(side="right", padx=(0, 16))
             self.lbl_department.pack(side="right", padx=(6, 0))
@@ -645,6 +679,10 @@ class MainWindow(ctk.CTk):
             self.search_block.pack(side="left", padx=(0, 16))
             self.lbl_search.pack(side="left", padx=(0, 6))
             self.entry_search.pack(side="left")
+
+            self.college_block.pack(side="left", padx=(0, 16))
+            self.lbl_college.pack(side="left", padx=(0, 6))
+            self.opt_college.pack(side="left")
 
             self.dept_block.pack(side="left", padx=(0, 16))
             self.lbl_department.pack(side="left", padx=(0, 6))
@@ -665,6 +703,7 @@ class MainWindow(ctk.CTk):
             ("barcode", "col_barcode", 110, "center" if rtl else "w"),
             ("name", "col_name", 230, "e" if rtl else "w"),
             ("cas_number", "col_cas", 100, "center" if rtl else "w"),
+            ("college", "col_college", 160, "e" if rtl else "w"),
             ("department", "col_department", 110, "e" if rtl else "w"),
             ("location", "col_location", 150, "e" if rtl else "w"),
             ("remaining_quantity", "col_qty", 65, "e"),
@@ -743,6 +782,7 @@ class MainWindow(ctk.CTk):
         search_query = self.search_var.get().strip()
 
         # Map display values to canonical query values for database
+        canonical_col = canonical_college(self.opt_college.get(), lang)
         canonical_dept = canonical_department(self.opt_department.get(), lang)
         canonical_filter = canonical_status_filter(self.btn_status_filter.get(), lang)
         canonical_hazard = canonical_hazard_filter(self.opt_hazard_filter.get(), lang)
@@ -750,6 +790,7 @@ class MainWindow(ctk.CTk):
         # Query database
         chemicals = db.get_all_chemicals(
             search_query=search_query,
+            college=canonical_col,
             department=canonical_dept,
             filter_status=canonical_filter,
             hazard_filter=canonical_hazard,
@@ -791,6 +832,7 @@ class MainWindow(ctk.CTk):
             else:
                 stock_str = t("stock_ok", lang)
 
+            college_display = display_college(c.college, lang)
             dept_display = display_department(c.department, lang)
             exp_date_display = c.expiration_date or t("val_none", lang)
 
@@ -799,6 +841,7 @@ class MainWindow(ctk.CTk):
                 c.barcode,
                 c.name,
                 c.cas_number or "-",
+                college_display,
                 dept_display,
                 c.location or "-",
                 f"{c.remaining_quantity:g}",
@@ -825,12 +868,17 @@ class MainWindow(ctk.CTk):
         # Update Status bar
         display_filt = display_status_filter(canonical_filter, lang)
         display_hazard = display_hazard_filter(canonical_hazard, lang)
+        display_c = display_college(canonical_col, lang)
         display_d = display_department(canonical_dept, lang)
         filter_tag = t("status_filter_tag", lang)
+        college_tag = t("status_college_tag", lang)
         dept_tag = t("status_dept_tag", lang)
         search_tag = t("status_search_tag", lang)
 
-        filter_info = f"{filter_tag}: {display_filt} | {dept_tag}: {display_d} | {t('lbl_hazard_filter', lang)} {display_hazard}"
+        filter_info = (
+            f"{filter_tag}: {display_filt} | {college_tag}: {display_c} | "
+            f"{dept_tag}: {display_d} | {t('lbl_hazard_filter', lang)} {display_hazard}"
+        )
         if search_query:
             filter_info += f" | {search_tag}: '{search_query}'"
 
@@ -861,8 +909,23 @@ class MainWindow(ctk.CTk):
         if not self._is_switching_lang:
             self.refresh_data()
 
+    def _on_college_filter_changed(self, value: str):
+        """Update department choices when the college filter changes."""
+        college = canonical_college(value, self.current_lang)
+        self.college_var.set(college)
+        self.opt_department.configure(
+            values=get_department_options(self.current_lang, college=college)
+        )
+        self.opt_department.set(display_department("All", self.current_lang))
+        self._on_filter_changed()
+
     def _clear_filters(self):
         self.search_var.set("")
+        self.opt_college.set(display_college("All", self.current_lang))
+        self.college_var.set("All")
+        self.opt_department.configure(
+            values=get_department_options(self.current_lang, college="All")
+        )
         self.opt_department.set(display_department("All", self.current_lang))
         self.btn_status_filter.set(display_status_filter("All", self.current_lang))
         self.opt_hazard_filter.set(display_hazard_filter("All", self.current_lang))
@@ -919,6 +982,7 @@ class MainWindow(ctk.CTk):
             else:
                 stock_str = t("stock_ok", lang)
 
+            college_display = display_college(c.college, lang)
             dept_display = display_department(c.department, lang)
             exp_date_display = c.expiration_date or t("val_none", lang)
 
@@ -927,6 +991,7 @@ class MainWindow(ctk.CTk):
                 c.barcode,
                 c.name,
                 c.cas_number or "-",
+                college_display,
                 dept_display,
                 c.location or "-",
                 f"{c.remaining_quantity:g}",
