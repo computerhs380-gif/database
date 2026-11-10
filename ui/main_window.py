@@ -61,8 +61,8 @@ class MainWindow(ctk.CTk):
         self.current_lang = get_setting("language", DEFAULT_LANGUAGE)
 
         # Window Configuration
-        self.geometry("1300x820")
-        self.minsize(1050, 680)
+        self.geometry("1420x860")
+        self.minsize(1200, 720)
 
         # Set appearance
         ctk.set_appearance_mode(self.current_theme)
@@ -155,7 +155,7 @@ class MainWindow(ctk.CTk):
     def _build_stats_cards(self):
         """Visual dashboard cards highlighting total inventory and active alerts."""
         self.stats_container = ctk.CTkFrame(self, fg_color="transparent")
-        self.stats_container.pack(fill="x", padx=24, pady=8)
+        self.stats_container.pack(fill="x", padx=24, pady=10)
 
         # 5 responsive cards
         self.card_total = self._create_stat_card("stat_total", "#3B82F6", "📦")
@@ -173,7 +173,13 @@ class MainWindow(ctk.CTk):
         ]
 
     def _create_stat_card(self, title_key: str, accent_color: str, icon: str):
-        card = ctk.CTkFrame(self.stats_container, corner_radius=10, height=72)
+        card = ctk.CTkFrame(
+            self.stats_container,
+            corner_radius=12,
+            border_width=1,
+            border_color=COLORS.get(self.current_theme.lower(), COLORS["dark"])["border"],
+            height=82,
+        )
         card.title_key = title_key
         card.icon = icon
         card.accent_color = accent_color
@@ -219,7 +225,8 @@ class MainWindow(ctk.CTk):
             fg_color="#10B981",
             hover_color="#059669",
             width=140,
-            height=36,
+            height=38,
+            corner_radius=8,
             command=self._on_add_chemical,
         )
 
@@ -230,7 +237,8 @@ class MainWindow(ctk.CTk):
             fg_color="#3B82F6",
             hover_color="#2563EB",
             width=110,
-            height=36,
+            height=38,
+            corner_radius=8,
             command=self._on_edit_chemical,
         )
 
@@ -241,7 +249,8 @@ class MainWindow(ctk.CTk):
             fg_color="#EF4444",
             hover_color="#DC2626",
             width=100,
-            height=36,
+            height=38,
+            corner_radius=8,
             command=self._on_delete_chemical,
         )
 
@@ -252,7 +261,8 @@ class MainWindow(ctk.CTk):
             fg_color="#475569",
             hover_color="#334155",
             width=130,
-            height=36,
+            height=38,
+            corner_radius=8,
             command=self._on_view_msds,
         )
 
@@ -264,7 +274,8 @@ class MainWindow(ctk.CTk):
             fg_color="#334155",
             hover_color="#1E293B",
             width=105,
-            height=36,
+            height=38,
+            corner_radius=8,
             command=self.refresh_data,
         )
 
@@ -275,7 +286,8 @@ class MainWindow(ctk.CTk):
             fg_color="#334155",
             hover_color="#1E293B",
             width=125,
-            height=36,
+            height=38,
+            corner_radius=8,
             command=self._on_download_template,
         )
 
@@ -286,7 +298,8 @@ class MainWindow(ctk.CTk):
             fg_color="#0284C7",
             hover_color="#0369A1",
             width=145,
-            height=36,
+            height=38,
+            corner_radius=8,
             command=self._on_export_excel,
         )
 
@@ -297,13 +310,19 @@ class MainWindow(ctk.CTk):
             fg_color="#0D9488",
             hover_color="#0F766E",
             width=155,
-            height=36,
+            height=38,
+            corner_radius=8,
             command=self._on_import_excel,
         )
 
     def _build_search_filter_bar(self):
         """Search input and department/alert filter dropdowns."""
-        self.filter_bar = ctk.CTkFrame(self, corner_radius=8)
+        self.filter_bar = ctk.CTkFrame(
+            self,
+            corner_radius=12,
+            border_width=1,
+            border_color=COLORS.get(self.current_theme.lower(), COLORS["dark"])["border"],
+        )
         self.filter_bar.pack(fill="x", padx=24, pady=6)
 
         self.filter_inner = ctk.CTkFrame(self.filter_bar, fg_color="transparent")
@@ -320,6 +339,7 @@ class MainWindow(ctk.CTk):
             self.search_block,
             placeholder_text="",
             width=300,
+            height=38,
             textvariable=self.search_var,
             font=FONTS["body"],
         )
@@ -333,6 +353,7 @@ class MainWindow(ctk.CTk):
             values=get_college_options(self.current_lang),
             command=self._on_college_filter_changed,
             width=190,
+            height=38,
             font=FONTS["body"],
         )
         self.opt_college.set(display_college("All", self.current_lang))
@@ -346,6 +367,7 @@ class MainWindow(ctk.CTk):
             values=dept_options,
             command=lambda val: self._on_filter_changed(),
             width=150,
+            height=38,
             font=FONTS["body"],
         )
         self.opt_department.set(display_department("All", self.current_lang))
@@ -359,6 +381,7 @@ class MainWindow(ctk.CTk):
             values=status_options,
             command=lambda val: self._on_filter_changed(),
             font=FONTS["body"],
+            height=38,
         )
         self.btn_status_filter.set(display_status_filter("All", self.current_lang))
 
@@ -369,6 +392,7 @@ class MainWindow(ctk.CTk):
             values=get_hazard_filter_options(self.current_lang),
             command=lambda val: self._on_filter_changed(),
             width=230,
+            height=38,
             font=FONTS["body"],
         )
         self.opt_hazard_filter.set(display_hazard_filter("All", self.current_lang))
@@ -378,19 +402,26 @@ class MainWindow(ctk.CTk):
             self.filter_secondary,
             text="",
             width=100,
+            height=38,
             font=FONTS["caption"],
             fg_color="#475569",
             hover_color="#334155",
+            corner_radius=8,
             command=self._clear_filters,
         )
 
     def _build_table(self):
         """Build the modern ttk.Treeview data table inside a custom container."""
-        self.table_container = ctk.CTkFrame(self, corner_radius=8)
+        self.table_container = ctk.CTkFrame(
+            self,
+            corner_radius=12,
+            border_width=1,
+            border_color=COLORS.get(self.current_theme.lower(), COLORS["dark"])["border"],
+        )
         self.table_container.pack(fill="both", expand=True, padx=24, pady=(6, 8))
 
         # Configure style
-        configure_treeview_style(self.current_theme)
+        configure_treeview_style(self.current_theme, rtl=is_rtl(self.current_lang))
 
         # Columns definition
         self.columns = (
@@ -419,8 +450,18 @@ class MainWindow(ctk.CTk):
         )
 
         # Scrollbars
-        self.vsb = ttk.Scrollbar(self.table_container, orient="vertical", command=self.tree.yview)
-        self.hsb = ttk.Scrollbar(self.table_container, orient="horizontal", command=self.tree.xview)
+        self.vsb = ttk.Scrollbar(
+            self.table_container,
+            orient="vertical",
+            style="Modern.Vertical.TScrollbar",
+            command=self.tree.yview,
+        )
+        self.hsb = ttk.Scrollbar(
+            self.table_container,
+            orient="horizontal",
+            style="Modern.Horizontal.TScrollbar",
+            command=self.tree.xview,
+        )
         self.tree.configure(yscrollcommand=self.vsb.set, xscrollcommand=self.hsb.set)
 
         # Grid placement
@@ -508,6 +549,7 @@ class MainWindow(ctk.CTk):
         lang = self.current_lang
         rtl = is_rtl(lang)
         text_anchor = "e" if rtl else "w"
+        configure_treeview_style(self.current_theme, rtl=rtl)
 
         # 1. Window Title
         self.title(f"{t('app_title', lang)} v{APP_VERSION}")
@@ -700,30 +742,30 @@ class MainWindow(ctk.CTk):
 
         # 6. Table Headers and Columns Configuration
         col_meta = [
-            ("id", "col_id", 45, "center"),
-            ("barcode", "col_barcode", 110, "center" if rtl else "w"),
-            ("name", "col_name", 230, "e" if rtl else "w"),
-            ("brand", "col_brand", 130, "e" if rtl else "w"),
-            ("cas_number", "col_cas", 100, "center" if rtl else "w"),
-            ("college", "col_college", 160, "e" if rtl else "w"),
-            ("department", "col_department", 110, "e" if rtl else "w"),
-            ("location", "col_location", 150, "e" if rtl else "w"),
-            ("remaining_quantity", "col_qty", 65, "e"),
-            ("units", "col_units", 65, "center" if rtl else "w"),
-            ("expiration_date", "col_expiration", 95, "center"),
-            ("exp_status", "col_status", 105, "center"),
-            ("stock_alert", "col_stock", 75, "center"),
-            ("hazards", "col_hazards", 250, "center"),
+            ("id", "col_id", 65, 55, "center"),
+            ("barcode", "col_barcode", 130, 110, "center"),
+            ("name", "col_name", 240, 180, "e" if rtl else "w"),
+            ("brand", "col_brand", 150, 120, "e" if rtl else "w"),
+            ("cas_number", "col_cas", 130, 110, "center"),
+            ("college", "col_college", 180, 150, "e" if rtl else "w"),
+            ("department", "col_department", 160, 130, "e" if rtl else "w"),
+            ("location", "col_location", 200, 150, "e" if rtl else "w"),
+            ("remaining_quantity", "col_qty", 85, 70, "center"),
+            ("units", "col_units", 80, 65, "center"),
+            ("expiration_date", "col_expiration", 125, 100, "center"),
+            ("exp_status", "col_status", 125, 100, "center"),
+            ("stock_alert", "col_stock", 95, 80, "center"),
+            ("hazards", "col_hazards", 165, 130, "center"),
         ]
 
-        for col_id, col_key, width, align in col_meta:
+        for col_id, col_key, width, minwidth, align in col_meta:
             self.tree.heading(
                 col_id,
                 text=t(col_key, lang),
                 anchor=align,
                 command=lambda c=col_id: self._sort_by_column(c),
             )
-            self.tree.column(col_id, width=width, minwidth=40, anchor=align)
+            self.tree.column(col_id, width=width, minwidth=minwidth, anchor=align)
 
         # 7. Status Bar Layout
         self.lbl_status_count.pack_forget()
@@ -762,7 +804,12 @@ class MainWindow(ctk.CTk):
         self.current_theme = mode.lower()
         set_setting("theme", self.current_theme)
         ctk.set_appearance_mode(self.current_theme)
-        configure_treeview_style(self.current_theme)
+        configure_treeview_style(self.current_theme, rtl=is_rtl(self.current_lang))
+        palette = COLORS.get(self.current_theme, COLORS["dark"])
+        self.filter_bar.configure(border_color=palette["border"])
+        self.table_container.configure(border_color=palette["border"])
+        for card in self.stat_cards:
+            card.configure(border_color=palette["border"])
         self._configure_tag_colors()
         self.refresh_data()
 

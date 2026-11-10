@@ -30,8 +30,8 @@ COLORS = {
         "tree_fg": "#F8FAFC",
         "tree_select_bg": "#3B82F6",
         "tree_select_fg": "#FFFFFF",
-        "tree_header_bg": "#0F172A",
-        "tree_header_fg": "#94A3B8",
+        "tree_header_bg": "#1E293B",
+        "tree_header_fg": "#F8FAFC",
     },
     "light": {
         "bg_primary": "#F8FAFC",      # Slate 50
@@ -57,7 +57,7 @@ COLORS = {
         "tree_select_bg": "#2563EB",
         "tree_select_fg": "#FFFFFF",
         "tree_header_bg": "#E2E8F0",
-        "tree_header_fg": "#334155",
+        "tree_header_fg": "#0F172A",
     },
 }
 
@@ -75,11 +75,12 @@ FONTS = {
 }
 
 
-def configure_treeview_style(mode: str = "dark"):
+def configure_treeview_style(mode: str = "dark", rtl: bool = False):
     """Configures modern styling for the ttk.Treeview table widget to match CustomTkinter."""
     palette = COLORS.get(mode, COLORS["dark"])
     style = ttk.Style()
     style.theme_use("clam")
+    font_family = "Tahoma" if rtl else "Segoe UI"
 
     # Main Treeview appearance
     style.configure(
@@ -88,8 +89,8 @@ def configure_treeview_style(mode: str = "dark"):
         foreground=palette["tree_fg"],
         fieldbackground=palette["tree_bg"],
         borderwidth=0,
-        font=FONTS["body"],
-        rowheight=32,
+        font=(font_family, 11),
+        rowheight=36,
     )
 
     style.map(
@@ -103,10 +104,10 @@ def configure_treeview_style(mode: str = "dark"):
         "Modern.Treeview.Heading",
         background=palette["tree_header_bg"],
         foreground=palette["tree_header_fg"],
-        font=FONTS["subheading"],
+        font=(font_family, 11, "bold"),
         borderwidth=1,
         relief="flat",
-        padding=(8, 8),
+        padding=(12, 10),
     )
 
     style.map(
@@ -114,3 +115,21 @@ def configure_treeview_style(mode: str = "dark"):
         background=[("active", palette["bg_tertiary"])],
         foreground=[("active", palette["text_primary"])],
     )
+
+    for orientation in ("Horizontal", "Vertical"):
+        style.configure(
+            f"Modern.{orientation}.TScrollbar",
+            background=palette["bg_tertiary"],
+            troughcolor=palette["tree_bg"],
+            bordercolor=palette["border"],
+            lightcolor=palette["bg_tertiary"],
+            darkcolor=palette["bg_tertiary"],
+            arrowcolor=palette["text_primary"],
+            arrowsize=12,
+            width=12,
+            relief="flat",
+        )
+        style.map(
+            f"Modern.{orientation}.TScrollbar",
+            background=[("active", palette["accent"]), ("pressed", palette["accent_hover"])],
+        )
