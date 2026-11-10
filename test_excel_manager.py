@@ -52,6 +52,44 @@ class ExcelImportTests(unittest.TestCase):
         self.assertEqual(chemicals[0].department, "کیمیا")
         self.assertEqual(chemicals[0].college, "زانکۆ")
 
+    def test_generates_unique_barcodes_and_strips_imported_text(self):
+        chemicals, errors = self.import_rows([
+            ["Chemical Name", "Company", "CAS Number", "Location", "Notes"],
+            [" Acetone ", " TurkLAB ", " 67-64-1 ", " Lab 1 ", " Keep closed "],
+            [" Ethanol ", " himedia ", " 64-17-5 ", " Lab 2 ", " Flammable "],
+        ])
+
+        self.assertEqual(errors, [])
+        self.assertEqual(len(chemicals), 2)
+        self.assertTrue(all(chemical.barcode.startswith("AUTO-") for chemical in chemicals))
+        self.assertEqual(len({chemical.barcode for chemical in chemicals}), 2)
+        self.assertEqual(chemicals[0].name, "Acetone")
+        self.assertEqual(chemicals[0].brand, "TurkLAB")
+        self.assertEqual(chemicals[0].cas_number, "67-64-1")
+        self.assertEqual(chemicals[0].location, "Lab 1")
+        self.assertEqual(chemicals[0].notes, "Keep closed")
+        self.assertEqual(chemicals[1].brand, "himedia")
+        self.assertEqual(chemicals[1].cas_number, "64-17-5")
+
+    def test_blank_barcode_does_not_skip_row_or_map_company_to_cas(self):
+        chemicals, errors = self.import_rows([
+            ["Barcode", "Name", "Company"],
+            ["", "Sample Chemical 1", " TurkLAB "],
+            ["", "Sample Chemical 2", " himedia "],
+            ["", "Sample Chemical 3", " EMSURE "],
+            ["", "Sample Chemical 4", " liofilchem "],
+        ])
+
+        self.assertEqual(errors, [])
+        self.assertEqual(len(chemicals), 4)
+        self.assertTrue(all(chemical.barcode.startswith("AUTO-") for chemical in chemicals))
+        self.assertEqual(len({chemical.barcode for chemical in chemicals}), 4)
+        self.assertEqual(
+            [chemical.brand for chemical in chemicals],
+            ["TurkLAB", "himedia", "EMSURE", "liofilchem"],
+        )
+        self.assertTrue(all(chemical.cas_number == "" for chemical in chemicals))
+
 
 if __name__ == "__main__":
     unittest.main()

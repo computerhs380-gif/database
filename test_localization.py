@@ -30,6 +30,21 @@ from ui.excel_dialog import ExcelReportDialog
 from database import db
 
 
+def assert_filter_bar_layout(app):
+    top_row = [app.search_block, app.college_block, app.dept_block, app.btn_clear]
+    bottom_row = [app.hazard_filter_block, app.qfilter_block]
+
+    assert all(widget.master == app.filter_primary for widget in top_row)
+    assert all(widget.master == app.filter_secondary for widget in bottom_row)
+
+    for row_widgets in (top_row, bottom_row):
+        bounds = sorted(
+            (widget.winfo_rootx(), widget.winfo_rootx() + widget.winfo_width())
+            for widget in row_widgets
+        )
+        assert all(left[1] <= right[0] for left, right in zip(bounds, bounds[1:])), bounds
+
+
 def run_localization_tests():
     print("=" * 65)
     print("RUNNING CIMS LOCALIZATION & RTL VERIFICATION TESTS")
@@ -76,6 +91,7 @@ def run_localization_tests():
     print("\n[4] Testing MainWindow in Kurdish (RTL) mode...")
     app = MainWindow()
     app.update()
+    assert_filter_bar_layout(app)
 
     assert app.current_lang == "ku"
     assert "کۆگای ماددە کیمیاییەکان" in app.title()
@@ -96,6 +112,7 @@ def run_localization_tests():
     print("\n[5] Testing dynamic toggle to English...")
     app._on_language_toggle("English")
     app.update()
+    assert_filter_bar_layout(app)
 
     assert app.current_lang == "en"
     assert "Chemical Inventory Management System" in app.title()

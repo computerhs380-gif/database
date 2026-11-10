@@ -32,7 +32,7 @@ Manage chemicals locally with an intuitive, modern, lab-assistant-friendly graph
 
 4. **Excel Import & Export**:
    - **Export to Excel**: Exports active inventory or filtered views into styled `.xlsx` spreadsheets with auto-fitted columns.
-   - **Import from Excel**: Flexible column header matching (accepts variations like `CAS #`, `CAS Number`, `Expiration Date`, `Qty`, etc.) with comprehensive import reports.
+   - **Import from Excel**: Flexible column header matching (accepts variations like `CAS #`, `CAS Number`, `Expiration Date`, `Qty`, etc.), skips title rows before the table, and generates unique `AUTO-...` barcodes when a row has no barcode.
    - **Excel Template Generator**: One-click download of a pre-formatted template with example rows.
 
 5. **Local & Standalone**:

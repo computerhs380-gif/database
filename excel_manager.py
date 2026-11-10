@@ -6,6 +6,7 @@ Uses pandas and openpyxl with automatic column mapping and validation.
 from pathlib import Path
 from typing import List, Tuple, Dict, Any
 from datetime import datetime, date
+from uuid import uuid4
 import pandas as pd
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
@@ -75,6 +76,18 @@ def _parse_bool(val: Any) -> bool:
         return bool(val)
     s = str(val).strip().lower()
     return s in ["true", "yes", "y", "1", "x", "checked", "positive"]
+
+
+def _clean_text(val: Any) -> str:
+    """Convert an Excel cell to trimmed text, treating empty cells as blank."""
+    if val is None:
+        return ""
+    try:
+        if pd.isna(val):
+            return ""
+    except (TypeError, ValueError):
+        pass
+    return str(val).strip()
 
 
 def _parse_date(val: Any) -> str:
@@ -192,14 +205,16 @@ def import_chemicals_from_excel(filepath: Path) -> Tuple[List[Chemical], List[st
                 ):
                     candidate_mapping[field_name] = col_idx
                     break
-        if "barcode" in candidate_mapping and "name" in candidate_mapping:
+        if "name" in candidate_mapping and (
+            "barcode" in candidate_mapping or len(candidate_mapping) > 1
+        ):
             header_mapping = candidate_mapping
             header_row_idx = row_idx
             break
 
-    if "barcode" not in header_mapping or "name" not in header_mapping:
+    if "name" not in header_mapping:
         return [], [
-            "Missing required columns! The Excel file must have columns for 'Barcode' and 'Name'."
+            "Missing required column! The Excel file must have a column for 'Name'."
         ]
 
     columns = df.iloc[header_row_idx].tolist()
@@ -218,12 +233,15 @@ def import_chemicals_from_excel(filepath: Path) -> Tuple[List[Chemical], List[st
                 return row.iloc[col_idx]
             return default
 
-        barcode_val = str(get_val("barcode")).strip()
-        name_val = str(get_val("name")).strip()
+        barcode_val = _clean_text(get_val("barcode"))
+        name_val = _clean_text(get_val("name"))
 
-        if not barcode_val or barcode_val.lower() == "nan" or not name_val or name_val.lower() == "nan":
-            errors.append(f"Row {row_num}: Barcode or Name is missing; row skipped.")
+        if not name_val:
+            errors.append(f"Row {row_num}: Name is missing; row skipped.")
             continue
+
+        if not barcode_val:
+            barcode_val = f"AUTO-{uuid4().hex.upper()}"
 
         # Remaining quantity parsing
         raw_qty = get_val("remaining_quantity", "0")
@@ -232,32 +250,34 @@ def import_chemicals_from_excel(filepath: Path) -> Tuple[List[Chemical], List[st
         except (ValueError, TypeError):
             qty = 0.0
 
-        raw_hazard_tags = str(get_val("hazard_tags")).strip()
+        raw_hazard_tags = _clean_text(get_val("hazard_tags"))
         hazard_tags = [] if raw_hazard_tags.lower() in ("", "nan") else [
-            tag.strip() for tag in raw_hazard_tags.replace(";", "|").split("|") if tag.strip()
+            _clean_text(tag)
+            for tag in raw_hazard_tags.replace(";", "|").split("|")
+            if _clean_text(tag)
         ]
 
         chem = Chemical(
             barcode=barcode_val,
             name=name_val,
-            brand=str(get_val("brand")),
-            cas_number=str(get_val("cas_number")),
-            location=str(get_val("location")),
+            brand=_clean_text(get_val("brand")),
+            cas_number=_clean_text(get_val("cas_number")),
+            location=_clean_text(get_val("location")),
             date_in=_parse_date(get_val("date_in")),
             expiration_date=_parse_date(get_val("expiration_date")),
-            storage_group=str(get_val("storage_group", "General Storage")),
-            container_size=str(get_val("container_size")),
+            storage_group=_clean_text(get_val("storage_group", "General Storage")),
+            container_size=_clean_text(get_val("container_size")),
             remaining_quantity=qty,
-            units=str(get_val("units", "mL")),
-            state=str(get_val("state", "Liquid")),
-            msds=str(get_val("msds")),
-            college=str(get_val("college", "College of Science")),
-            department=str(get_val("department", "Chemistry")),
+            units=_clean_text(get_val("units", "mL")),
+            state=_clean_text(get_val("state", "Liquid")),
+            msds=_clean_text(get_val("msds")),
+            college=_clean_text(get_val("college", "College of Science")),
+            department=_clean_text(get_val("department", "Chemistry")),
             hazard_security=_parse_bool(get_val("hazard_security")),
             hazard_health=_parse_bool(get_val("hazard_health")),
             hazard_physical=_parse_bool(get_val("hazard_physical")),
             hazard_tags=hazard_tags,
-            notes=str(get_val("notes")),
+            notes=_clean_text(get_val("notes")),
         )
         chemicals.append(chem)
 

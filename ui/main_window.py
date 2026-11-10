@@ -399,7 +399,7 @@ class MainWindow(ctk.CTk):
 
         # Clear Filters Button
         self.btn_clear = ctk.CTkButton(
-            self.filter_secondary,
+            self.filter_primary,
             text="",
             width=100,
             height=38,
@@ -689,56 +689,57 @@ class MainWindow(ctk.CTk):
         self.dept_block.pack_forget()
         self.lbl_department.pack_forget()
         self.opt_department.pack_forget()
+        self.btn_clear.pack_forget()
         self.qfilter_block.pack_forget()
         self.lbl_quick_filter.pack_forget()
         self.btn_status_filter.pack_forget()
         self.hazard_filter_block.pack_forget()
         self.lbl_hazard_filter.pack_forget()
         self.opt_hazard_filter.pack_forget()
-        self.btn_clear.pack_forget()
 
         if rtl:
-            self.search_block.pack(side="right", padx=(0, 16))
+            self.search_block.pack(side="right", padx=6)
             self.lbl_search.pack(side="right", padx=(6, 0))
             self.entry_search.pack(side="right")
 
-            self.college_block.pack(side="right", padx=(0, 16))
+            self.college_block.pack(side="right", padx=6)
             self.lbl_college.pack(side="right", padx=(6, 0))
             self.opt_college.pack(side="right")
 
-            self.dept_block.pack(side="right", padx=(0, 16))
+            self.dept_block.pack(side="right", padx=6)
             self.lbl_department.pack(side="right", padx=(6, 0))
             self.opt_department.pack(side="right")
+            self.btn_clear.pack(side="left", padx=6)
 
-            self.qfilter_block.pack(side="right", padx=(0, 16))
-            self.lbl_quick_filter.pack(side="right", padx=(6, 0))
-            self.btn_status_filter.pack(side="right")
-
-            self.hazard_filter_block.pack(side="right")
+            self.hazard_filter_block.pack(side="right", padx=6)
             self.lbl_hazard_filter.pack(side="right", padx=(6, 0))
             self.opt_hazard_filter.pack(side="right")
-            self.btn_clear.pack(side="left")
+
+            self.qfilter_block.pack(side="right", padx=6)
+            self.lbl_quick_filter.pack(side="right", padx=(6, 0))
+            self.btn_status_filter.pack(side="right")
         else:
-            self.search_block.pack(side="left", padx=(0, 16))
+            self.search_block.pack(side="left", padx=6)
             self.lbl_search.pack(side="left", padx=(0, 6))
             self.entry_search.pack(side="left")
 
-            self.college_block.pack(side="left", padx=(0, 16))
+            self.college_block.pack(side="left", padx=6)
             self.lbl_college.pack(side="left", padx=(0, 6))
             self.opt_college.pack(side="left")
 
-            self.dept_block.pack(side="left", padx=(0, 16))
+            self.dept_block.pack(side="left", padx=6)
             self.lbl_department.pack(side="left", padx=(0, 6))
             self.opt_department.pack(side="left")
 
-            self.qfilter_block.pack(side="left", padx=(0, 16))
-            self.lbl_quick_filter.pack(side="left", padx=(0, 6))
-            self.btn_status_filter.pack(side="left")
+            self.btn_clear.pack(side="right", padx=6)
 
-            self.hazard_filter_block.pack(side="left")
+            self.hazard_filter_block.pack(side="left", padx=6)
             self.lbl_hazard_filter.pack(side="left", padx=(0, 6))
             self.opt_hazard_filter.pack(side="left")
-            self.btn_clear.pack(side="right")
+
+            self.qfilter_block.pack(side="left", padx=6)
+            self.lbl_quick_filter.pack(side="left", padx=(0, 6))
+            self.btn_status_filter.pack(side="left")
 
         # 6. Table Headers and Columns Configuration
         col_meta = [
