@@ -6,6 +6,7 @@ Uses pandas and openpyxl with automatic column mapping and validation.
 from pathlib import Path
 from typing import List, Tuple, Dict, Any
 from datetime import datetime, date
+import re
 from uuid import uuid4
 import pandas as pd
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -49,7 +50,18 @@ COLUMN_ALIASES: Dict[str, List[str]] = {
     "expiration_date": ["expiration date", "expiry date", "exp date", "expiration", "expiry"],
     "storage_group": ["storage group", "storage class", "hazard class", "group", "class"],
     "container_size": ["bottle / container size and units", "bottle / container size", "container size", "bottle size", "size"],
-    "remaining_quantity": ["remaining quantity", "remaining qty", "quantity", "qty", "amount remaining", "remaining"],
+    "remaining_quantity": [
+        "remaining quantity",
+        "remaining qty",
+        "quantity",
+        "quanity",
+        "qty",
+        "qnty",
+        "amount",
+        "amount remaining",
+        "remaining",
+        "بڕ",
+    ],
     "units": ["units", "unit", "uom", "quantity units"],
     "state": ["state", "physical state", "form", "phase"],
     "msds": ["msds", "sds", "safety data sheet", "msds link", "msds / sds", "sds link"],
@@ -88,6 +100,22 @@ def _clean_text(val: Any) -> str:
     except (TypeError, ValueError):
         pass
     return str(val).strip()
+
+
+def _parse_quantity(val: Any) -> Tuple[float, str]:
+    """Extract the first numeric value and optional unit text from a quantity cell."""
+    text = _clean_text(val)
+    match = re.search(r"[-+]?(?:\d[\d,]*(?:\.\d*)?|\.\d+)", text)
+    if not match:
+        return 0.0, ""
+
+    try:
+        quantity = float(match.group().replace(",", ""))
+    except ValueError:
+        return 0.0, ""
+
+    unit = (text[:match.start()] + " " + text[match.end():]).strip(" \t,;:-")
+    return quantity, unit
 
 
 def _parse_date(val: Any) -> str:
@@ -243,12 +271,9 @@ def import_chemicals_from_excel(filepath: Path) -> Tuple[List[Chemical], List[st
         if not barcode_val:
             barcode_val = f"AUTO-{uuid4().hex.upper()}"
 
-        # Remaining quantity parsing
         raw_qty = get_val("remaining_quantity", "0")
-        try:
-            qty = float(str(raw_qty).replace(",", "").strip())
-        except (ValueError, TypeError):
-            qty = 0.0
+        qty, quantity_unit = _parse_quantity(raw_qty)
+        unit = _clean_text(get_val("units")) or quantity_unit or "mL"
 
         raw_hazard_tags = _clean_text(get_val("hazard_tags"))
         hazard_tags = [] if raw_hazard_tags.lower() in ("", "nan") else [
@@ -268,7 +293,7 @@ def import_chemicals_from_excel(filepath: Path) -> Tuple[List[Chemical], List[st
             storage_group=_clean_text(get_val("storage_group", "General Storage")),
             container_size=_clean_text(get_val("container_size")),
             remaining_quantity=qty,
-            units=_clean_text(get_val("units", "mL")),
+            units=unit,
             state=_clean_text(get_val("state", "Liquid")),
             msds=_clean_text(get_val("msds")),
             college=_clean_text(get_val("college", "College of Science")),

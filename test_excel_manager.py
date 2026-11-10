@@ -90,6 +90,41 @@ class ExcelImportTests(unittest.TestCase):
         )
         self.assertTrue(all(chemical.cas_number == "" for chemical in chemicals))
 
+    def test_quantity_aliases_parse_numeric_values_and_infer_units(self):
+        chemicals, errors = self.import_rows([
+            ["Name", "Quanity", "Unit"],
+            ["Chemical 1", "250 gram", ""],
+            ["Chemical 2", "150 ml", ""],
+            ["Chemical 3", "4 pakets", ""],
+            ["Chemical 4", "1.5 L", ""],
+            ["Chemical 5", "2.75", " bottle "],
+        ])
+
+        self.assertEqual(errors, [])
+        self.assertEqual(
+            [(chemical.remaining_quantity, chemical.units) for chemical in chemicals],
+            [
+                (250.0, "gram"),
+                (150.0, "ml"),
+                (4.0, "pakets"),
+                (1.5, "L"),
+                (2.75, "bottle"),
+            ],
+        )
+
+    def test_quantity_typos_and_missing_numeric_values_are_safe(self):
+        for quantity_header in ("qnty", "amount", "بڕ"):
+            with self.subTest(quantity_header=quantity_header):
+                chemicals, errors = self.import_rows([
+                    ["Name", quantity_header, "Unit"],
+                    ["Chemical 1", "no quantity", ""],
+                ])
+
+                self.assertEqual(errors, [])
+                self.assertEqual(len(chemicals), 1)
+                self.assertEqual(chemicals[0].remaining_quantity, 0.0)
+                self.assertEqual(chemicals[0].units, "mL")
+
 
 if __name__ == "__main__":
     unittest.main()
