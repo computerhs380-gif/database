@@ -17,6 +17,7 @@ from config import SAMPLE_EXCEL_PATH
 STANDARD_HEADERS = [
     "Barcode",
     "Name",
+    "Brand",
     "CAS Number",
     "Location",
     "Date In",
@@ -40,6 +41,7 @@ STANDARD_HEADERS = [
 COLUMN_ALIASES: Dict[str, List[str]] = {
     "barcode": ["barcode", "code", "barcode id", "item code", "id barcode", "tag"],
     "name": ["name", "chemical name", "item name", "compound", "chemical", "description"],
+    "brand": ["brand", "brand / company", "brand/company", "manufacturer", "brand / manufacturer", "company"],
     "cas_number": ["cas number", "cas", "cas #", "cas no", "cas_no", "cas no."],
     "location": ["location", "shelf", "cabinet", "room", "storage location", "rack"],
     "date_in": ["date in", "date received", "arrival date", "received date", "entry date"],
@@ -101,6 +103,7 @@ def export_chemicals_to_excel(chemicals: List[Chemical], filepath: Path) -> Tupl
             rows.append({
                 "Barcode": c.barcode,
                 "Name": c.name,
+                "Brand": c.brand,
                 "CAS Number": c.cas_number,
                 "Location": c.location,
                 "Date In": c.date_in,
@@ -232,6 +235,7 @@ def import_chemicals_from_excel(filepath: Path) -> Tuple[List[Chemical], List[st
         chem = Chemical(
             barcode=barcode_val,
             name=name_val,
+            brand=str(get_val("brand")),
             cas_number=str(get_val("cas_number")),
             location=str(get_val("location")),
             date_in=_parse_date(get_val("date_in")),

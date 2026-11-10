@@ -25,7 +25,7 @@ Manage chemicals locally with an intuitive, modern, lab-assistant-friendly graph
    - **MSDS Integration**: Direct "Open" button to view online web links or local PDF safety sheets.
 
 3. **High-Performance Search & Multi-Filter**:
-   - Real-time search across Barcode, Chemical Name, CAS Number, and Storage Location.
+   - Real-time search across Barcode, Chemical Name, Brand / Company, CAS Number, and Storage Location.
    - Filter by College and by the departments belonging to the selected college.
    - Sortable columns (click any column header to sort ascending/descending).
    - High-contrast color-coded alerts (Red for Expired, Amber for Expiring Soon, Orange for Low Stock).
@@ -86,6 +86,7 @@ python app.py
 | :--- | :--- | :--- |
 | **Barcode** | Text (Unique) | Unique identifier or barcode for the container |
 | **Name** | Text (Required) | Name of the chemical compound (e.g. *Hydrochloric Acid 37%*) |
+| **Brand** | Text | Chemical manufacturer or company (e.g. *Sigma-Aldrich*, *Merck*, *BDH*) |
 | **CAS Number** | Text | Chemical Abstracts Service registry number (e.g. *7647-01-0*) |
 | **Location** | Text | Specific cabinet, shelf, or room (e.g. *Room 204 - Acid Cabinet A1*) |
 | **Date In** | Date (`YYYY-MM-DD`) | Date received or checked into the inventory |

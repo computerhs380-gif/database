@@ -33,6 +33,7 @@ class DatabaseManager:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     barcode TEXT UNIQUE NOT NULL,
                     name TEXT NOT NULL,
+                    brand TEXT DEFAULT '',
                     cas_number TEXT,
                     location TEXT,
                     date_in TEXT,
@@ -69,6 +70,8 @@ class DatabaseManager:
             existing_columns = [row[1] for row in cursor.fetchall()]
             if "college" not in existing_columns:
                 cursor.execute("ALTER TABLE chemicals ADD COLUMN college TEXT DEFAULT 'College of Science'")
+            if "brand" not in existing_columns:
+                cursor.execute("ALTER TABLE chemicals ADD COLUMN brand TEXT DEFAULT ''")
             if "hazard_tags" not in existing_columns:
                 cursor.execute("ALTER TABLE chemicals ADD COLUMN hazard_tags TEXT NOT NULL DEFAULT '[]'")
 
@@ -125,15 +128,16 @@ class DatabaseManager:
                 cursor.execute(
                     """
                     INSERT INTO chemicals (
-                        barcode, name, cas_number, location, date_in, expiration_date,
+                        barcode, name, brand, cas_number, location, date_in, expiration_date,
                         storage_group, container_size, remaining_quantity, units,
                         state, msds, college, department, hazard_security, hazard_health,
                         hazard_physical, hazard_tags, notes, created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         chem.barcode.strip(),
                         chem.name.strip(),
+                        chem.brand.strip(),
                         chem.cas_number.strip(),
                         chem.location.strip(),
                         chem.date_in.strip(),
@@ -185,6 +189,7 @@ class DatabaseManager:
                     UPDATE chemicals SET
                         barcode = ?,
                         name = ?,
+                        brand = ?,
                         cas_number = ?,
                         location = ?,
                         date_in = ?,
@@ -208,6 +213,7 @@ class DatabaseManager:
                     (
                         chem.barcode.strip(),
                         chem.name.strip(),
+                        chem.brand.strip(),
                         chem.cas_number.strip(),
                         chem.location.strip(),
                         chem.date_in.strip(),
@@ -326,11 +332,11 @@ class DatabaseManager:
             query += " AND department = ?"
             params.append(department)
 
-        # Search Query across Barcode, Name, CAS Number, Location
+        # Search Query across Barcode, Name, Brand, CAS Number, Location
         if search_query and search_query.strip():
             sq = f"%{search_query.strip()}%"
-            query += " AND (barcode LIKE ? OR name LIKE ? OR cas_number LIKE ? OR location LIKE ?)"
-            params.extend([sq, sq, sq, sq])
+            query += " AND (barcode LIKE ? OR name LIKE ? OR brand LIKE ? OR cas_number LIKE ? OR location LIKE ?)"
+            params.extend([sq, sq, sq, sq, sq])
 
         # Status alert filter in SQL
         if filter_status == "Expired":
@@ -442,7 +448,7 @@ class DatabaseManager:
                         cursor.execute(
                             """
                             UPDATE chemicals SET
-                                name = ?, cas_number = ?, location = ?, date_in = ?,
+                                name = ?, brand = ?, cas_number = ?, location = ?, date_in = ?,
                                 expiration_date = ?, storage_group = ?, container_size = ?,
                                 remaining_quantity = ?, units = ?, state = ?, msds = ?,
                                 college = ?, department = ?, hazard_security = ?, hazard_health = ?,
@@ -451,6 +457,7 @@ class DatabaseManager:
                             """,
                             (
                                 chem.name.strip(),
+                                chem.brand.strip(),
                                 chem.cas_number.strip(),
                                 chem.location.strip(),
                                 chem.date_in.strip(),
@@ -482,15 +489,16 @@ class DatabaseManager:
                     cursor.execute(
                         """
                         INSERT INTO chemicals (
-                            barcode, name, cas_number, location, date_in, expiration_date,
+                            barcode, name, brand, cas_number, location, date_in, expiration_date,
                             storage_group, container_size, remaining_quantity, units,
                             state, msds, college, department, hazard_security, hazard_health,
                             hazard_physical, hazard_tags, notes, created_at, updated_at
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         (
                             chem.barcode.strip(),
                             chem.name.strip(),
+                            chem.brand.strip(),
                             chem.cas_number.strip(),
                             chem.location.strip(),
                             chem.date_in.strip(),

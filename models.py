@@ -25,6 +25,7 @@ class Chemical:
     id: Optional[int] = None
     barcode: str = ""
     name: str = ""
+    brand: str = ""
     cas_number: str = ""
     location: str = ""
     date_in: str = ""           # YYYY-MM-DD
@@ -117,6 +118,7 @@ class Chemical:
             id=data.get("id"),
             barcode=str(data.get("barcode") or ""),
             name=str(data.get("name") or ""),
+            brand=str(data.get("brand") or ""),
             cas_number=str(data.get("cas_number") or ""),
             location=str(data.get("location") or ""),
             date_in=str(data.get("date_in") or ""),

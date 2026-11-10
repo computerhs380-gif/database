@@ -159,6 +159,24 @@ class ChemicalDialog(ctk.CTkToplevel):
         )
         self.entry_name.pack(side=input_side, fill="x", expand=True)
 
+        # Brand Row
+        f_brand = ctk.CTkFrame(sec1, fg_color="transparent")
+        f_brand.pack(fill="x", pady=4)
+        lbl_brand = ctk.CTkLabel(
+            f_brand,
+            text=t("form_brand", self.lang),
+            width=160,
+            anchor=text_anchor,
+            font=FONTS["body_bold"],
+        )
+        lbl_brand.pack(side=label_side, padx=(6, 0) if self.rtl else (0, 6))
+        self.entry_brand = ctk.CTkEntry(
+            f_brand,
+            placeholder_text=t("form_brand_placeholder", self.lang),
+            font=FONTS["body"],
+        )
+        self.entry_brand.pack(side=input_side, fill="x", expand=True)
+
         # College Row
         f_college = ctk.CTkFrame(sec1, fg_color="transparent")
         f_college.pack(fill="x", pady=4)
@@ -557,6 +575,7 @@ class ChemicalDialog(ctk.CTkToplevel):
 
         self.entry_barcode.insert(0, c.barcode or "")
         self.entry_name.insert(0, c.name or "")
+        self.entry_brand.insert(0, c.brand or "")
         self.entry_cas.insert(0, c.cas_number or "")
         self.entry_location.insert(0, c.location or "")
         self.entry_date_in.insert(0, c.date_in or "")
@@ -667,6 +686,7 @@ class ChemicalDialog(ctk.CTkToplevel):
             id=chem_id,
             barcode=barcode,
             name=name,
+            brand=self.entry_brand.get().strip(),
             cas_number=self.entry_cas.get().strip(),
             location=self.entry_location.get().strip(),
             date_in=date_in,
