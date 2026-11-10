@@ -39,10 +39,10 @@ STANDARD_HEADERS = [
 
 # Aliases to match flexible column headers in imported files
 COLUMN_ALIASES: Dict[str, List[str]] = {
-    "barcode": ["barcode", "code", "barcode id", "item code", "id barcode", "tag"],
-    "name": ["name", "chemical name", "item name", "compound", "chemical", "description"],
-    "brand": ["brand", "brand / company", "brand/company", "manufacturer", "brand / manufacturer", "company"],
-    "cas_number": ["cas number", "cas", "cas #", "cas no", "cas_no", "cas no."],
+    "barcode": ["barcode", "bar code", "barcode id", "code", "item code", "id barcode", "tag", "بارکۆد"],
+    "name": ["name", "chemical name", "item name", "compound", "chemical", "description", "ناوی ماددە"],
+    "brand": ["brand", "brand / company", "brand/company", "manufacturer", "brand / manufacturer", "company", "مارکە", "کۆمپانیا"],
+    "cas_number": ["cas number", "cas", "cas #", "cas no", "cas_no", "cas no.", "cas numb", "کۆدی cas"],
     "location": ["location", "shelf", "cabinet", "room", "storage location", "rack"],
     "date_in": ["date in", "date received", "arrival date", "received date", "entry date"],
     "expiration_date": ["expiration date", "expiry date", "exp date", "expiration", "expiry"],
@@ -52,8 +52,8 @@ COLUMN_ALIASES: Dict[str, List[str]] = {
     "units": ["units", "unit", "uom", "quantity units"],
     "state": ["state", "physical state", "form", "phase"],
     "msds": ["msds", "sds", "safety data sheet", "msds link", "msds / sds", "sds link"],
-    "college": ["college", "faculty", "school", "col"],
-    "department": ["owner/department", "department", "owner", "dept", "lab"],
+    "college": ["college", "faculty", "school", "col", "کۆلێژ"],
+    "department": ["owner/department", "department", "owner", "dept", "lab", "بەش"],
     "hazard_security": ["security risk", "security hazard", "security", "controlled"],
     "hazard_health": ["health hazard", "health risk", "health", "toxic hazard"],
     "hazard_physical": ["physical hazard", "physical risk", "physical"],
@@ -173,44 +173,49 @@ def import_chemicals_from_excel(filepath: Path) -> Tuple[List[Chemical], List[st
     Reads an Excel file, maps columns intelligently, and returns a list of Chemical objects.
     """
     try:
-        df = pd.read_excel(filepath, dtype=str)
+        df = pd.read_excel(filepath, dtype=str, header=None)
     except Exception as e:
         return [], [f"Could not read Excel file: {str(e)}"]
 
     if df.empty:
         return [], ["Excel file has no data rows."]
 
-    # Create mapping of actual file column names to model fields
     header_mapping = {}
-    for col in df.columns:
-        norm_col = _normalize_header(col)
-        matched = False
-        for field_name, aliases in COLUMN_ALIASES.items():
-            if field_name in header_mapping:
-                continue
-            for alias in aliases:
-                if norm_col == _normalize_header(alias):
-                    header_mapping[field_name] = col
-                    matched = True
+    header_row_idx = None
+    for row_idx, row in df.iterrows():
+        candidate_mapping = {}
+        for col_idx, col in enumerate(row):
+            norm_col = _normalize_header(col)
+            for field_name, aliases in COLUMN_ALIASES.items():
+                if field_name not in candidate_mapping and any(
+                    norm_col == _normalize_header(alias) for alias in aliases
+                ):
+                    candidate_mapping[field_name] = col_idx
                     break
-            if matched:
-                break
+        if "barcode" in candidate_mapping and "name" in candidate_mapping:
+            header_mapping = candidate_mapping
+            header_row_idx = row_idx
+            break
 
     if "barcode" not in header_mapping or "name" not in header_mapping:
         return [], [
             "Missing required columns! The Excel file must have columns for 'Barcode' and 'Name'."
         ]
 
+    columns = df.iloc[header_row_idx].tolist()
+    df = df.iloc[header_row_idx + 1:].copy()
+    df.columns = columns
+
     chemicals: List[Chemical] = []
     errors: List[str] = []
 
     for idx, row in df.iterrows():
-        row_num = idx + 2  # Excel 1-based index plus header
+        row_num = idx + 1  # Preserve the physical Excel row number.
 
         def get_val(f_name: str, default: Any = "") -> Any:
-            col_name = header_mapping.get(f_name)
-            if col_name and col_name in row and not pd.isna(row[col_name]):
-                return row[col_name]
+            col_idx = header_mapping.get(f_name)
+            if col_idx is not None and not pd.isna(row.iloc[col_idx]):
+                return row.iloc[col_idx]
             return default
 
         barcode_val = str(get_val("barcode")).strip()
