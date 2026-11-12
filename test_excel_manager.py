@@ -35,7 +35,7 @@ class ExcelImportTests(unittest.TestCase):
         self.assertEqual(chemicals[0].brand, "Acme")
         self.assertEqual(chemicals[0].cas_number, "67-64-1")
         self.assertEqual(chemicals[0].department, "Chemistry")
-        self.assertEqual(chemicals[0].college, "Science")
+        self.assertEqual(chemicals[0].college, "College of Science")
 
     def test_matches_kurdish_column_aliases(self):
         chemicals, errors = self.import_rows([
@@ -52,6 +52,41 @@ class ExcelImportTests(unittest.TestCase):
         self.assertEqual(chemicals[0].department, "کیمیا")
         self.assertEqual(chemicals[0].college, "زانکۆ")
 
+    def test_canonicalizes_supported_colleges(self):
+        chemicals, errors = self.import_rows([
+            ["Name", "College", "Department"],
+            ["Chemical 1", "Education", "Chemistry"],
+            ["Chemical 2", "پەروەردە", "Chemistry"],
+            ["Chemical 3", "Science", "Chemistry"],
+            ["Chemical 4", "زانست", "Chemistry"],
+            ["Chemical 5", "Medicine", "Chemistry"],
+            ["Chemical 6", "پزیشکی", "Chemistry"],
+        ])
+
+        self.assertEqual(errors, [])
+        self.assertEqual(
+            [chemical.college for chemical in chemicals],
+            [
+                "College of Education",
+                "College of Education",
+                "College of Science",
+                "College of Science",
+                "College of Medicine",
+                "College of Medicine",
+            ],
+        )
+
+    def test_brand_in_cas_column_does_not_discard_existing_brand(self):
+        chemicals, errors = self.import_rows([
+            ["Name", "Brand", "CAS Number"],
+            ["Chemical", "Existing Brand", "TurkLAB"],
+        ])
+
+        self.assertEqual(errors, [])
+        self.assertEqual(len(chemicals), 1)
+        self.assertEqual(chemicals[0].brand, "Existing Brand / TurkLAB")
+        self.assertEqual(chemicals[0].cas_number, "")
+
     def test_generates_unique_barcodes_and_strips_imported_text(self):
         chemicals, errors = self.import_rows([
             ["Chemical Name", "Company", "CAS Number", "Location", "Notes"],
@@ -61,8 +96,7 @@ class ExcelImportTests(unittest.TestCase):
 
         self.assertEqual(errors, [])
         self.assertEqual(len(chemicals), 2)
-        self.assertTrue(all(chemical.barcode.startswith("AUTO-") for chemical in chemicals))
-        self.assertEqual(len({chemical.barcode for chemical in chemicals}), 2)
+        self.assertEqual([chemical.barcode for chemical in chemicals], ["CHE-001", "CHE-002"])
         self.assertEqual(chemicals[0].name, "Acetone")
         self.assertEqual(chemicals[0].brand, "TurkLAB")
         self.assertEqual(chemicals[0].cas_number, "67-64-1")
@@ -82,8 +116,10 @@ class ExcelImportTests(unittest.TestCase):
 
         self.assertEqual(errors, [])
         self.assertEqual(len(chemicals), 4)
-        self.assertTrue(all(chemical.barcode.startswith("AUTO-") for chemical in chemicals))
-        self.assertEqual(len({chemical.barcode for chemical in chemicals}), 4)
+        self.assertEqual(
+            [chemical.barcode for chemical in chemicals],
+            ["CHE-001", "CHE-002", "CHE-003", "CHE-004"],
+        )
         self.assertEqual(
             [chemical.brand for chemical in chemicals],
             ["TurkLAB", "himedia", "EMSURE", "liofilchem"],
@@ -104,7 +140,7 @@ class ExcelImportTests(unittest.TestCase):
         self.assertEqual(
             [(chemical.remaining_quantity, chemical.units) for chemical in chemicals],
             [
-                (250.0, "gram"),
+                (250.0, "g"),
                 (150.0, "ml"),
                 (4.0, "pakets"),
                 (1.5, "L"),
@@ -124,6 +160,61 @@ class ExcelImportTests(unittest.TestCase):
                 self.assertEqual(len(chemicals), 1)
                 self.assertEqual(chemicals[0].remaining_quantity, 0.0)
                 self.assertEqual(chemicals[0].units, "mL")
+
+    def test_smart_education_biology_imports_all_rows(self):
+        rows = [
+            [
+                "Barcode", "Name", "Brand", "CAS Number", "Quanity", "Unit",
+                "Statues", "College", "Department",
+            ]
+        ]
+        cas_values = [
+            "7647-01-0", "liofilchem", "neogen", "EMSURE", "acumedia", "himedia",
+            "LAB M", "Scharlau", "OXOID", "BDH", "purum", "Fluka", "SYRBIO",
+            "KANGHUA", "Bio research", "TurkLAB", "Cores tests",
+        ]
+        statuses = ["solid", "liquid", "gas", "kit", "pellets"]
+        colleges = ["Education", "پەروەردە", "Education", "پەروەردە", "Education"]
+        quantities = ["250 gram", "150 ml", "4 pakets", "10 g", "2 L"]
+        for index in range(35):
+            rows.append([
+                "",
+                f"Biology Chemical {index + 1}",
+                "",
+                cas_values[index % len(cas_values)],
+                quantities[index % len(quantities)],
+                "",
+                statuses[index % len(statuses)],
+                colleges[index % len(colleges)],
+                "biology" if index % 2 else "Biology",
+            ])
+
+        chemicals, errors = self.import_rows(rows)
+
+        self.assertEqual(errors, [])
+        self.assertEqual(len(chemicals), 35)
+        self.assertEqual(
+            [chemical.barcode for chemical in chemicals],
+            [f"BIO-{index:03d}" for index in range(1, 36)],
+        )
+        self.assertTrue(all(chemical.college == "College of Education" for chemical in chemicals))
+        self.assertTrue(all(chemical.department == "Biology" for chemical in chemicals))
+        self.assertEqual(
+            [(chemical.remaining_quantity, chemical.units) for chemical in chemicals[:3]],
+            [(250.0, "g"), (150.0, "ml"), (4.0, "pakets")],
+        )
+        self.assertEqual(
+            [chemical.state for chemical in chemicals[:5]],
+            ["Solid", "Liquid", "Gas", "Kit", "Pellets"],
+        )
+        self.assertEqual(chemicals[0].cas_number, "7647-01-0")
+        self.assertEqual(chemicals[1].brand, "liofilchem")
+        self.assertEqual(chemicals[1].cas_number, "")
+        self.assertTrue(all(
+            chemical.cas_number == ""
+            for chemical in chemicals
+            if chemical.brand
+        ))
 
 
 if __name__ == "__main__":

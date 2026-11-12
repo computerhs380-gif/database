@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import List, Tuple, Dict, Any
 from datetime import datetime, date
 import re
-from uuid import uuid4
 import pandas as pd
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
@@ -63,7 +62,7 @@ COLUMN_ALIASES: Dict[str, List[str]] = {
         "بڕ",
     ],
     "units": ["units", "unit", "uom", "quantity units"],
-    "state": ["state", "physical state", "form", "phase"],
+    "state": ["state", "physical state", "form", "phase", "status", "statues"],
     "msds": ["msds", "sds", "safety data sheet", "msds link", "msds / sds", "sds link"],
     "college": ["college", "faculty", "school", "col", "کۆلێژ"],
     "department": ["owner/department", "department", "owner", "dept", "lab", "بەش"],
@@ -116,6 +115,71 @@ def _parse_quantity(val: Any) -> Tuple[float, str]:
 
     unit = (text[:match.start()] + " " + text[match.end():]).strip(" \t,;:-")
     return quantity, unit
+
+
+def _normalize_unit(unit: str) -> str:
+    """Normalize common quantity units without changing uncommon unit labels."""
+    normalized = unit.strip()
+    if normalized.casefold() in ("gram", "grams"):
+        return "g"
+    return normalized
+
+
+def _is_brand_in_cas(value: str) -> bool:
+    """Detect manufacturer names accidentally placed in the CAS Number column."""
+    text = value.strip()
+    if not text:
+        return False
+
+    known_brands = {
+        "liofilchem", "neogen", "emsure", "acumedia", "himedia", "lab m",
+        "scharlau", "oxoid", "bdh", "purum", "fluka", "syrbio", "kanghua",
+        "bio research", "turklab", "cores tests",
+    }
+    normalized = " ".join(text.casefold().split())
+    return normalized in known_brands or (
+        not any(character.isdigit() for character in text)
+        and all(character.isalpha() or character.isspace() for character in text)
+        and any(character.isalpha() for character in text)
+    )
+
+
+def _canonical_college(value: str, department: str) -> str:
+    """Map common college names and keep Biology in the College of Education."""
+    if department.casefold().strip() == "biology":
+        return "College of Education"
+
+    normalized = value.casefold()
+    if "education" in normalized or "پەروەردە" in normalized:
+        return "College of Education"
+    if "science" in normalized or "زانست" in normalized:
+        return "College of Science"
+    if "medicine" in normalized or "پزیشکی" in normalized:
+        return "College of Medicine"
+    return value
+
+
+def _canonical_state(value: str) -> str:
+    """Return a consistently capitalized physical state, or an empty value."""
+    states = {
+        "solid": "Solid",
+        "liquid": "Liquid",
+        "gas": "Gas",
+        "kit": "Kit",
+        "pellets": "Pellets",
+        "powder": "Powder",
+        "crystalline": "Crystalline",
+        "solution": "Solution",
+        "gel": "Gel",
+        "suspension": "Suspension",
+    }
+    return states.get(value.casefold().strip(), "")
+
+
+def _barcode_prefix(department: str) -> str:
+    """Build a short, stable barcode prefix from the department name."""
+    letters = "".join(character for character in department.upper() if character.isalnum())
+    return letters[:3] or "CHE"
 
 
 def _parse_date(val: Any) -> str:
@@ -251,6 +315,12 @@ def import_chemicals_from_excel(filepath: Path) -> Tuple[List[Chemical], List[st
 
     chemicals: List[Chemical] = []
     errors: List[str] = []
+    generated_barcode_sequences: Dict[str, int] = {}
+    used_barcodes = {
+        _clean_text(value)
+        for value in df.iloc[:, header_mapping["barcode"]]
+        if _clean_text(value)
+    } if "barcode" in header_mapping else set()
 
     for idx, row in df.iterrows():
         row_num = idx + 1  # Preserve the physical Excel row number.
@@ -268,12 +338,50 @@ def import_chemicals_from_excel(filepath: Path) -> Tuple[List[Chemical], List[st
             errors.append(f"Row {row_num}: Name is missing; row skipped.")
             continue
 
-        if not barcode_val:
-            barcode_val = f"AUTO-{uuid4().hex.upper()}"
-
         raw_qty = get_val("remaining_quantity", "0")
         qty, quantity_unit = _parse_quantity(raw_qty)
-        unit = _clean_text(get_val("units")) or quantity_unit or "mL"
+        unit = _normalize_unit(_clean_text(get_val("units")) or quantity_unit) or "mL"
+
+        department_val = _clean_text(get_val("department", "Chemistry")) or "Chemistry"
+        if department_val.casefold() == "biology":
+            department_val = "Biology"
+        college_val = _canonical_college(
+            _clean_text(get_val("college", "College of Science")) or "College of Science",
+            department_val,
+        )
+        raw_cas = _clean_text(get_val("cas_number"))
+        raw_brand = _clean_text(get_val("brand"))
+        if _is_brand_in_cas(raw_cas):
+            if not raw_brand:
+                raw_brand = raw_cas
+            elif raw_cas.casefold() not in raw_brand.casefold():
+                raw_brand = f"{raw_brand} / {raw_cas}"
+            raw_cas = ""
+
+        raw_state = _clean_text(get_val("state"))
+        state_val = _canonical_state(raw_state)
+        if not state_val:
+            state_column = header_mapping.get("state")
+            state_header = (
+                _normalize_header(columns[state_column]).casefold()
+                if state_column is not None
+                else ""
+            )
+            state_val = (
+                raw_state
+                if raw_state and state_header not in ("status", "statues")
+                else "Liquid"
+            )
+
+        if not barcode_val:
+            prefix = _barcode_prefix(department_val)
+            sequence = generated_barcode_sequences.get(prefix, 0) + 1
+            barcode_val = f"{prefix}-{sequence:03d}"
+            while barcode_val in used_barcodes:
+                sequence += 1
+                barcode_val = f"{prefix}-{sequence:03d}"
+            generated_barcode_sequences[prefix] = sequence
+            used_barcodes.add(barcode_val)
 
         raw_hazard_tags = _clean_text(get_val("hazard_tags"))
         hazard_tags = [] if raw_hazard_tags.lower() in ("", "nan") else [
@@ -285,8 +393,8 @@ def import_chemicals_from_excel(filepath: Path) -> Tuple[List[Chemical], List[st
         chem = Chemical(
             barcode=barcode_val,
             name=name_val,
-            brand=_clean_text(get_val("brand")),
-            cas_number=_clean_text(get_val("cas_number")),
+            brand=raw_brand,
+            cas_number=raw_cas,
             location=_clean_text(get_val("location")),
             date_in=_parse_date(get_val("date_in")),
             expiration_date=_parse_date(get_val("expiration_date")),
@@ -294,10 +402,10 @@ def import_chemicals_from_excel(filepath: Path) -> Tuple[List[Chemical], List[st
             container_size=_clean_text(get_val("container_size")),
             remaining_quantity=qty,
             units=unit,
-            state=_clean_text(get_val("state", "Liquid")),
+            state=state_val,
             msds=_clean_text(get_val("msds")),
-            college=_clean_text(get_val("college", "College of Science")),
-            department=_clean_text(get_val("department", "Chemistry")),
+            college=college_val,
+            department=department_val,
             hazard_security=_parse_bool(get_val("hazard_security")),
             hazard_health=_parse_bool(get_val("hazard_health")),
             hazard_physical=_parse_bool(get_val("hazard_physical")),
