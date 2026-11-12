@@ -257,6 +257,23 @@ class DatabaseManager:
         except Exception as e:
             return False, f"Error deleting chemical: {str(e)}"
 
+    def delete_chemicals_batch(self, ids: List[int]) -> Tuple[bool, str]:
+        """Deletes multiple chemicals by ID in a single transaction."""
+        if not ids:
+            return False, "No chemical IDs provided."
+
+        try:
+            placeholders = ", ".join("?" for _ in ids)
+            with self.get_connection() as conn:
+                conn.execute(
+                    f"DELETE FROM chemicals WHERE id IN ({placeholders})",
+                    ids,
+                )
+                conn.commit()
+            return True, "Chemicals deleted successfully."
+        except Exception as e:
+            return False, f"Error deleting chemicals: {str(e)}"
+
     def has_seeded_initial_data(self) -> bool:
         """Return whether sample data was handled or chemicals existed previously."""
         with self.get_connection() as conn:

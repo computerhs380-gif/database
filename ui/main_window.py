@@ -446,7 +446,7 @@ class MainWindow(ctk.CTk):
             columns=self.columns,
             show="headings",
             style="Modern.Treeview",
-            selectmode="browse",
+            selectmode="extended",
         )
 
         # Scrollbars
@@ -1107,8 +1107,8 @@ class MainWindow(ctk.CTk):
     def _on_delete_chemical(self):
         """Delete selected chemical with localized confirmation."""
         lang = self.current_lang
-        chem = self._get_selected_chemical()
-        if not chem:
+        chemical_ids = [int(item_id) for item_id in self.tree.selection()]
+        if not chemical_ids:
             messagebox.showinfo(
                 t("dialog_selection_required", lang),
                 t("dialog_select_to_delete", lang),
@@ -1117,12 +1117,27 @@ class MainWindow(ctk.CTk):
             return
 
         confirm_title = t("dialog_confirm_delete_title", lang)
-        confirm_msg = t(
-            "dialog_confirm_delete_msg",
-            lang,
-            name=chem.name,
-            barcode=chem.barcode,
-        )
+        if len(chemical_ids) == 1:
+            chem = db.get_chemical_by_id(chemical_ids[0])
+            if not chem:
+                messagebox.showinfo(
+                    t("dialog_selection_required", lang),
+                    t("dialog_select_to_delete", lang),
+                    parent=self,
+                )
+                return
+            confirm_msg = t(
+                "dialog_confirm_delete_msg",
+                lang,
+                name=chem.name,
+                barcode=chem.barcode,
+            )
+        else:
+            confirm_msg = t(
+                "dialog_confirm_delete_multiple_msg",
+                lang,
+                count=len(chemical_ids),
+            )
 
         confirm = messagebox.askyesno(
             confirm_title,
@@ -1131,7 +1146,10 @@ class MainWindow(ctk.CTk):
             parent=self,
         )
         if confirm:
-            success, msg = db.delete_chemical(chem.id)
+            if len(chemical_ids) == 1:
+                success, msg = db.delete_chemical(chem.id)
+            else:
+                success, msg = db.delete_chemicals_batch(chemical_ids)
             if success:
                 self.refresh_data()
             else:
